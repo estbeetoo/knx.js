@@ -1,0 +1,1 @@
+Based on https://github.com/lifeemotions/knx.net
