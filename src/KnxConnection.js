@@ -2,234 +2,36 @@
  * Created by aborovsky on 24.08.2015.
  */
 
-function KnxConnection() {
+var EventEmitter = require('events').EventEmitter;
+var util = require('util');
+
+function KnxConnection(host, port) {
+
+    KnxConnection.super_.call(this);
 
     this.ClassName = 'KnxConnection';
-
-/// <summary>
-///     Delegate function for connection established trigger
-/// </summary>
-    public delegate void KnxConnected();
-
-/// <summary>
-///     Event triggered when connection is established
-/// </summary>
-    public KnxConnected KnxConnectedDelegate = null;
-
-/// <summary>
-///     Delegate function for disconnection trigger
-/// </summary>
-    public delegate void KnxDisconnected();
-
-/// <summary>
-///     Event triggered when connection drops
-/// </summary>
-    public KnxDisconnected KnxDisconnectedDelegate = null;
-
-/// <summary>
-///     Delegate function for KNX events
-/// </summary>
-/// <param name="address"></param>
-/// <param name="state"></param>
-    public delegate void KnxEvent(string address, string state);
-
-/// <summary>
-///     Event triggered when there is a new KNX event
-/// </summary>
-    public KnxEvent KnxEventDelegate = (address, state) => { };
-
-/// <summary>
-///     Delegate function for KNX status queries
-/// </summary>
-/// <param name="address"></param>
-/// <param name="state"></param>
-    public delegate void KnxStatus(string address, string state);
-
-/// <summary>
-///     Event triggered when received a status after a query
-/// </summary>
-    public KnxStatus KnxStatusDelegate = (address, state) => { };
-
-    private readonly KnxLockManager _lockManager = new KnxLockManager();
-
-/// <summary>
-///     Create a new KNX Connection to specified host and port
-/// </summary>
-/// <param name="host">Host to connect</param>
-/// <param name="port">Port to use</param>
-    protected KnxConnection(string host, int port)
-    {
-        ConnectionConfiguration = new KnxConnectionConfiguration(host, port);
-
-        ActionMessageCode = 0x00;
-        ThreeLevelGroupAddressing = true;
-        Debug = false;
-    }
-
-    internal KnxConnectionConfiguration ConnectionConfiguration { get; private set; }
-
-/// <summary>
-///     Get the IPEndPoint instance representing the remote KNX gateway
-/// </summary>
-    public IPEndPoint RemoteEndpoint
-    {
-        get
-        {
-            return ConnectionConfiguration.EndPoint;
+    this.RemoteEndpoint = {
+        host: host,
+        port: port,
+        toBytes: function () {
+            if (!this.host || this.host === '')
+                throw 'Cannot proceed toString for endPoint with empy host'
+            if (this.host.indexOf('.') === -1 || this.host.split('.').length < 4)
+                throw 'Cannot proceed toString for endPoint with host[' + this.host + '], it should contain ip address'
+            var result = new Buffer(4);
+            var arr = this.host.split('.');
+            result[0] = parseInt(arr[0]) & 255;
+            result[1] = parseInt(arr[1]) & 255;
+            result[2] = parseInt(arr[2]) & 255;
+            result[3] = parseInt(arr[3]) & 255;
         }
-    }
+    };
 
-    internal KnxReceiver KnxReceiver { get; set; }
+    this.ActionMessageCode = 0x00;
+    this.ThreeLevelGroupAddressing = true;
+}
 
-    internal KnxSender KnxSender { get; set; }
-
-/// <summary>
-///     Configure this paramenter based on the KNX installation:
-///     - true: 3-level group address: main/middle/sub(5/3/8 bits)
-///     - false: 2-level group address: main/sub (5/11 bits)
-///     Default: true
-/// </summary>
-    public bool ThreeLevelGroupAddressing { get; set; }
-
-/// <summary>
-///     Set to true to receive debug log messages
-/// </summary>
-    public bool Debug { get; set; }
-
-/// <summary>
-///     Some KNX Routers/Interfaces might need this parameter defined, some need this to be 0x29.
-///     Default: 0x00
-/// </summary>
-    public byte ActionMessageCode { get; set; }
-
-/// <summary>
-///     Start the connection
-/// </summary>
-    public abstract void Connect();
-
-/// <summary>
-///     Stop the connection
-/// </summary>
-    public abstract void Disconnect();
-
-/// <summary>
-///     Event triggered by implementing class to notify that the connection has been established
-/// </summary>
-    internal virtual void Connected()
-    {
-        try
-        {
-            if (KnxConnectedDelegate != null)
-                KnxConnectedDelegate();
-        }
-        catch(e)
-        {
-            //ignore
-        }
-
-        Logger.Info(self.ClassName, "KNX is connected");
-        console.log(self.ClassName, "Unlocking send - {0} free locks", _lockManager.LockCount);
-
-        _lockManager.UnlockConnection();
-    }
-
-/// <summary>
-///     Event triggered by implementing class to notify that the connection has been established
-/// </summary>
-    internal virtual void Disconnected()
-    {
-        _lockManager.LockConnection();
-
-        try
-        {
-            if (KnxDisconnectedDelegate != null)
-                KnxDisconnectedDelegate();
-        }
-        catch(e)
-        {
-            //ignore
-        }
-
-        console.log(self.ClassName, "KNX is disconnected");
-        console.log(self.ClassName, "Send locked - {0} free locks", _lockManager.LockCount);
-    }
-
-    internal void Event(string address, string state)
-    {
-        try
-        {
-            KnxEventDelegate(address, state);
-        }
-        catch(e)
-        {
-            //ignore
-        }
-
-        console.log(self.ClassName, "Device {0} sent event {1}", address, state);
-    }
-
-    internal void Status(string address, string state)
-    {
-        try
-        {
-            KnxStatusDelegate(address, state);
-        }
-        catch(e)
-        {
-            //ignore
-        }
-
-        console.log(self.ClassName, "Device {0} has status {1}", address, state);
-    }
-
-/// <summary>
-///     Send a bit value as data to specified address
-/// </summary>
-/// <param name="address">KNX Address</param>
-/// <param name="data">Bit value</param>
-/// <exception cref="InvalidKnxDataException"></exception>
-    public void Action(string address, bool data)
-    {
-        byte[] val;
-
-        try
-        {
-            val = new[] {Convert.ToByte(data)};
-        }
-        catch(e)
-        {
-            throw new InvalidKnxDataException(data.ToString());
-        }
-
-        if (val == null)
-            throw new InvalidKnxDataException(data.ToString());
-
-        Action(address, val);
-    }
-
-/// <summary>
-///     Send a string value as data to specified address
-/// </summary>
-/// <param name="address">KNX Address</param>
-/// <param name="data">String value</param>
-/// <exception cref="InvalidKnxDataException"></exception>
-    public void Action(string address, string data)
-    {
-        byte[] val;
-        try
-        {
-            val = Encoding.ASCII.GetBytes(data);
-        }
-        catch(e)
-        {
-            throw new InvalidKnxDataException(data);
-        }
-
-        if (val == null)
-            throw new InvalidKnxDataException(data);
-
-        Action(address, val);
-    }
+util.inherits(KnxConnection, EventEmitter);
 
 /// <summary>
 ///     Send an int value as data to specified address
@@ -237,117 +39,98 @@ function KnxConnection() {
 /// <param name="address">KNX Address</param>
 /// <param name="data">Int value</param>
 /// <exception cref="InvalidKnxDataException"></exception>
-    public void Action(string address, int data)
-    {
-        var val = new byte[2];
-        if (data <= 255)
-        {
-            val[0] = 0x00;
-            val[1] = (byte) data;
-        }
-        else if (data <= 65535)
-        {
-            val[0] = (byte) data;
-            val[1] = (byte) (data >> 8);
-        }
-        else
-        {
-            // allowing only positive integers less than 65535 (2 bytes), maybe it is incorrect...???
-            throw new InvalidKnxDataException(data.ToString());
-        }
-
-        if (val == null)
-            throw new InvalidKnxDataException(data.ToString());
-
-        Action(address, val);
+KnxConnection.prototype.Action = function (address, data) {
+    var val = new Buffer(2);
+    if (data <= 255) {
+        val[0] = 0x00;
+        val[1] = data & 255;
+    }
+    else if (data <= 65535) {
+        val[0] = data & 255;
+        val[1] = (data >> 8) & 255;
+    }
+    else {
+        // allowing only positive integers less than 65535 (2 bytes), maybe it is incorrect...???
+        throw new InvalidKnxDataException(data.toString());
     }
 
-/// <summary>
-///     Send a byte value as data to specified address
-/// </summary>
-/// <param name="address">KNX Address</param>
-/// <param name="data">byte value</param>
-    public void Action(string address, byte data)
-    {
-        Action(address, new byte[] {0x00, data});
-    }
+    if (val == null)
+        throw new InvalidKnxDataException(data.toString());
+
+    this.Action(address, val);
+}
 
 /// <summary>
 ///     Send a byte array value as data to specified address
 /// </summary>
 /// <param name="address">KNX Address</param>
 /// <param name="data">Byte array value</param>
-    public void Action(string address, byte[] data)
-    {
-        console.log(self.ClassName, "Sending {0} to {1}.", data, address);
+KnxConnection.prototype.Action = function (address, data) {
 
-        _lockManager.PerformLockedOperation(() => KnxSender.Action(address, data));
-
-        console.log(self.ClassName, "Sent {0} to {1}.", data, address);
+    if (!Buffer.isBuffer(data)) {
+        var buf = null;
+        switch (typeof(data)) {
+            case 'boolean':
+                buf = new Buffer(1);
+                buf.writeIntLE(data ? 1 : 0);
+                break
+            case 'number':
+                buf = new Buffer();
+                buf.writeIntLE(data);
+                break
+            case 'string':
+                buf = new Buffer(data.toString());
+                break
+        }
+        data = buf;
     }
+    console.log("[%s] Sending %s to %s.", this.ClassName, data, address);
+    this.knxSender.Action(address, data);
+    console.log("[%s] Sent %s to %s.", this.ClassName, data, address);
+}
 
 // TODO: It would be good to make a type for address, to make sure not any random string can be passed in
 /// <summary>
 ///     Send a request to KNX asking for specified address current status
 /// </summary>
 /// <param name="address"></param>
-    public void RequestStatus(string address)
-    {
-        console.log(self.ClassName, "Sending request status to {0}.", address);
-
-        _lockManager.PerformLockedOperation(() => KnxSender.RequestStatus(address));
-
-        console.log(self.ClassName, "Sent request status to {0}.", address);
-    }
-
-/// <summary>
-///     Convert a value received from KNX using datapoint translator, e.g.,
-///     get a temperature value in Celsius
-/// </summary>
-/// <param name="type">Datapoint type, e.g.: 9.001</param>
-/// <param name="data">Data to convert</param>
-/// <returns></returns>
-    public object FromDataPoint(string type, string data)
-    {
-        return DataPointTranslator.Instance.FromDataPoint(type, data);
-    }
-
-/// <summary>
-///     Convert a value received from KNX using datapoint translator, e.g.,
-///     get a temperature value in Celsius
-/// </summary>
-/// <param name="type">Datapoint type, e.g.: 9.001</param>
-/// <param name="data">Data to convert</param>
-/// <returns></returns>
-    public object FromDataPoint(string type, byte[] data)
-    {
-        return DataPointTranslator.Instance.FromDataPoint(type, data);
-    }
-
-/// <summary>
-///     Convert a value to send to KNX using datapoint translator, e.g.,
-///     get a temperature value in Celsius in a byte representation
-/// </summary>
-/// <param name="type">Datapoint type, e.g.: 9.001</param>
-/// <param name="value">Value to convert</param>
-/// <returns></returns>
-    public byte[] ToDataPoint(string type, string value)
-    {
-        return DataPointTranslator.Instance.ToDataPoint(type, value);
-    }
-
-/// <summary>
-///     Convert a value to send to KNX using datapoint translator, e.g.,
-///     get a temperature value in Celsius in a byte representation
-/// </summary>
-/// <param name="type">Datapoint type, e.g.: 9.001</param>
-/// <param name="value">Value to convert</param>
-/// <returns></returns>
-    public byte[] ToDataPoint(string type, object value)
-    {
-        return DataPointTranslator.Instance.ToDataPoint(type, value);
-    }
-
+KnxConnection.prototype.RequestStatus = function (address) {
+    console.log("[%s] Sending request status to %s.", this.ClassName, address);
+    this.knxSender.RequestStatus(address);
+    console.log("[%s] Sent request status to %s.", this.ClassName, address);
 }
 
-exports.KnxConnection = KnxConnection;
+/// <summary>
+///     Convert a value received from KNX using datapoint translator, e.g.,
+///     get a temperature value in Celsius
+/// </summary>
+/// <param name="type">Datapoint type, e.g.: 9.001</param>
+/// <param name="data">Data to convert</param>
+/// <returns></returns>
+KnxConnection.prototype.FromDataPoint = function (type, /*buffer*/data) {
+    return DataPointTranslator.Instance.FromDataPoint(type, data);
+}
+
+/// <summary>
+///     Convert a value received from KNX using datapoint translator, e.g.,
+///     get a temperature value in Celsius
+/// </summary>
+/// <param name="type">Datapoint type, e.g.: 9.001</param>
+/// <param name="data">Data to convert</param>
+/// <returns></returns>
+KnxConnection.prototype.FromDataPoint = function (type, /*buffer*/data) {
+    return DataPointTranslator.Instance.FromDataPoint(type, data);
+}
+
+/// <summary>
+///     Convert a value to send to KNX using datapoint translator, e.g.,
+///     get a temperature value in Celsius in a byte representation
+/// </summary>
+/// <param name="type">Datapoint type, e.g.: 9.001</param>
+/// <param name="value">Value to convert</param>
+/// <returns></returns>
+KnxConnection.prototype.ToDataPoint = function (type, value) {
+    return DataPointTranslator.Instance.ToDataPoint(type, value);
+}
+
+module.exports = KnxConnection;

@@ -10,5 +10,16 @@
   "author": {
     "name": "Alexander Borovsky",
     "email": "aborovsky@beetoo.me"
-  }
+  },
+  "keywords": [
+    "knx",
+    "eibd",
+    "house automation"
+  ],
+  "maintainers": [
+    {
+      "name": "aborovsky",
+      "email": "aborovsky@beetoo.me"
+    }
+  ]
 }
