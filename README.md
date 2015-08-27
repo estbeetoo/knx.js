@@ -1,6 +1,6 @@
 Based on https://github.com/lifeemotions/knx.net
 
-Right now it now tested in all directions, but KnxConnectionTunneling is working.
+Right now it not tested in all directions, but KnxConnectionTunneling is working.
 One can find Usage example, it tested with KNXnet/IP router: ABB IPR/S 2.1.
  
 #Usage
