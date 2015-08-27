@@ -1,0 +1,96 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'C:\\Program Files\\nodejs\\\\node.exe',
+1 verbose cli   'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'publish' ]
+2 info using npm@2.8.3
+3 info using node@v0.12.0
+4 verbose node symlink C:\Program Files\nodejs\\node.exe
+5 verbose publish [ '.' ]
+6 silly cache add args [ '.', null ]
+7 verbose cache add spec .
+8 silly cache add parsed spec { raw: '.',
+8 silly cache add   scope: null,
+8 silly cache add   name: null,
+8 silly cache add   rawSpec: '.',
+8 silly cache add   spec: 'C:\\work\\knx.js\\node_modules\\knx.js',
+8 silly cache add   type: 'directory' }
+9 verbose addLocalDirectory C:\Users\Александр\AppData\Roaming\npm-cache\knx.js\0.1.2\package.tgz not in flight; packing
+10 verbose tar pack [ 'C:\\Users\\Александр\\AppData\\Roaming\\npm-cache\\knx.js\\0.1.2\\package.tgz',
+10 verbose tar pack   'C:\\work\\knx.js\\node_modules\\knx.js' ]
+11 verbose tarball C:\Users\Александр\AppData\Roaming\npm-cache\knx.js\0.1.2\package.tgz
+12 verbose folder C:\work\knx.js\node_modules\knx.js
+13 info prepublish knx.js@0.1.2
+14 verbose addLocalTarball adding from inside cache C:\Users\Александр\AppData\Roaming\npm-cache\knx.js\0.1.2\package.tgz
+15 silly cache afterAdd knx.js@0.1.2
+16 verbose afterAdd C:\Users\Александр\AppData\Roaming\npm-cache\knx.js\0.1.2\package\package.json not in flight; writing
+17 verbose afterAdd C:\Users\Александр\AppData\Roaming\npm-cache\knx.js\0.1.2\package\package.json written
+18 silly publish { name: 'knx.js',
+18 silly publish   version: '0.1.2',
+18 silly publish   private: false,
+18 silly publish   repository:
+18 silly publish    { type: 'git',
+18 silly publish      url: 'git+https://github.com/estbeetoo/knx.js.git' },
+18 silly publish   license: 'Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)',
+18 silly publish   author: { name: 'Alexander Borovsky', email: 'aborovsky@beetoo.me' },
+18 silly publish   keywords: [ 'knx', 'eibd', 'house automation' ],
+18 silly publish   maintainers: [ { name: 'aborovsky', email: 'aborovsky@beetoo.me' } ],
+18 silly publish   contributors: [ { name: 'Alexander Borovsky' } ],
+18 silly publish   readme: 'Based on https://github.com/lifeemotions/knx.net\r\n\r\nRight now it not tested in all directions, but KnxConnectionTunneling is working.\r\nOne can find Usage example, it tested with KNXnet/IP router: ABB IPR/S 2.1.\r\n \r\n#Usage\r\n\r\n```\r\nvar KnxConnectionTunneling = require(\'knx.js\').KnxConnectionTunneling;\r\nvar connection = new KnxConnectionTunneling(\'192.168.2.222\', 3671, \'192.168.2.107\', 13671);\r\n\r\nvar lightValue = false;\r\nfunction toggleLight() {\r\n    lightValue = !lightValue;\r\n    connection.Action("1/0/0", lightValue);\r\n}\r\n\r\nconnection.Connect(function () {\r\n    setTimeout(toggleLight, 2000);\r\n    setTimeout(toggleLight, 5000);\r\n    setTimeout(function () {\r\n        connection.Disconnect();\r\n    }, 7000);\r\n});\r\n\r\n\r\n\r\n```\r\n \r\n# License\r\n\r\n![Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png "CC BY-NC-SA 4.0")',
+18 silly publish   readmeFilename: 'README.md',
+18 silly publish   gitHead: 'a29a874eca0d7f5afeca3d1ad526f515326d9175',
+18 silly publish   description: 'Based on https://github.com/lifeemotions/knx.net',
+18 silly publish   bugs: { url: 'https://github.com/estbeetoo/knx.js/issues' },
+18 silly publish   homepage: 'https://github.com/estbeetoo/knx.js#readme',
+18 silly publish   _id: 'knx.js@0.1.2',
+18 silly publish   scripts: {},
+18 silly publish   _shasum: 'f4d8351e6b501963be3fa7f98e8d93aa2e3d9f13',
+18 silly publish   _from: '.' }
+19 silly mapToRegistry name knx.js
+20 silly mapToRegistry using default registry
+21 silly mapToRegistry registry https://registry.npmjs.org/
+22 silly mapToRegistry uri https://registry.npmjs.org/knx.js
+23 verbose publish registryBase https://registry.npmjs.org/
+24 silly publish uploading C:\Users\Александр\AppData\Roaming\npm-cache\knx.js\0.1.2\package.tgz
+25 verbose request uri https://registry.npmjs.org/knx.js
+26 verbose request sending authorization for write operation
+27 info attempt registry request try #1 at 13:01:48
+28 verbose request using bearer token for auth
+29 verbose request id 8c4c4f5555332f0a
+30 http request PUT https://registry.npmjs.org/knx.js
+31 http 403 https://registry.npmjs.org/knx.js
+32 verbose headers { 'content-type': 'application/json',
+32 verbose headers   'cache-control': 'max-age=60',
+32 verbose headers   'content-length': '95',
+32 verbose headers   'accept-ranges': 'bytes',
+32 verbose headers   date: 'Thu, 27 Aug 2015 10:01:51 GMT',
+32 verbose headers   via: '1.1 varnish',
+32 verbose headers   connection: 'keep-alive',
+32 verbose headers   'x-served-by': 'cache-ams4126-AMS',
+32 verbose headers   'x-cache': 'MISS',
+32 verbose headers   'x-cache-hits': '0',
+32 verbose headers   'x-timer': 'S1440669710.237702,VS0,VE1066' }
+33 verbose request invalidating C:\Users\Александр\AppData\Roaming\npm-cache\registry.npmjs.org\knx.js on PUT
+34 error publish Failed PUT 403
+35 verbose stack Error: "You cannot publish over the previously published version 0.1.2." : knx.js
+35 verbose stack     at CachingRegistryClient.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:247:14)
+35 verbose stack     at Request._callback (C:\Program Files\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:170:14)
+35 verbose stack     at Request.self.callback (C:\Program Files\nodejs\node_modules\npm\node_modules\request\request.js:368:22)
+35 verbose stack     at Request.emit (events.js:110:17)
+35 verbose stack     at Request.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\request\request.js:1219:14)
+35 verbose stack     at Request.emit (events.js:129:20)
+35 verbose stack     at IncomingMessage.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\request\request.js:1167:12)
+35 verbose stack     at IncomingMessage.emit (events.js:129:20)
+35 verbose stack     at _stream_readable.js:908:16
+35 verbose stack     at process._tickCallback (node.js:355:11)
+36 verbose statusCode 403
+37 verbose pkgid knx.js
+38 verbose cwd C:\work\knx.js\node_modules\knx.js
+39 error Windows_NT 6.3.9600
+40 error argv "C:\\Program Files\\nodejs\\\\node.exe" "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "publish"
+41 error node v0.12.0
+42 error npm  v2.8.3
+43 error code E403
+44 error "You cannot publish over the previously published version 0.1.2." : knx.js
+45 error If you need help, you may report this error at:
+45 error     <https://github.com/npm/npm/issues>
+46 verbose exit [ 1, true ]
