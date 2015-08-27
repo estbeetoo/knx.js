@@ -5,6 +5,7 @@
 var KnxConnection = require('./KnxConnection');
 var KnxReceiverTunneling = require('./KnxReceiverTunneling');
 var KnxSenderTunneling = require('./KnxSenderTunneling');
+var ConnectionErrorException = require('./ConnectionErrorException');
 var util = require('util');
 var dgram = require('dgram');
 

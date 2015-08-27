@@ -4,6 +4,15 @@
 
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
+var InvalidKnxDataException = require('./InvalidKnxDataException');
+
+function isInt(n) {
+    return Number(n) === n && n % 1 === 0;
+}
+
+function isFloat(n) {
+    return n === Number(n) && n % 1 !== 0;
+}
 
 function KnxConnection(host, port) {
 
@@ -35,37 +44,10 @@ function KnxConnection(host, port) {
 util.inherits(KnxConnection, EventEmitter);
 
 /// <summary>
-///     Send an int value as data to specified address
-/// </summary>
-/// <param name="address">KNX Address</param>
-/// <param name="data">Int value</param>
-/// <exception cref="InvalidKnxDataException"></exception>
-KnxConnection.prototype.Action = function (address, data) {
-    var val = new Buffer(2);
-    if (data <= 255) {
-        val[0] = 0x00;
-        val[1] = data & 255;
-    }
-    else if (data <= 65535) {
-        val[0] = data & 255;
-        val[1] = (data >> 8) & 255;
-    }
-    else {
-        // allowing only positive integers less than 65535 (2 bytes), maybe it is incorrect...???
-        throw new InvalidKnxDataException(data.toString());
-    }
-
-    if (val == null)
-        throw new InvalidKnxDataException(data.toString());
-
-    this.Action(address, val);
-}
-
-/// <summary>
 ///     Send a byte array value as data to specified address
 /// </summary>
 /// <param name="address">KNX Address</param>
-/// <param name="data">Byte array value</param>
+/// <param name="data">Byte array value or integer</param>
 KnxConnection.prototype.Action = function (address, data) {
 
     if (!Buffer.isBuffer(data)) {
@@ -76,8 +58,26 @@ KnxConnection.prototype.Action = function (address, data) {
                 buf.writeIntLE(data ? 1 : 0);
                 break
             case 'number':
-                buf = new Buffer();
-                buf.writeIntLE(data);
+                //if integer
+                if (isInt(data)) {
+                    buf = new Buffer(2);
+                    if (data <= 255) {
+                        buf[0] = 0x00;
+                        buf[1] = data & 255;
+                    }
+                    else if (data <= 65535) {
+                        buf[0] = data & 255;
+                        buf[1] = (data >> 8) & 255;
+                    }
+                    else
+                        throw new InvalidKnxDataException(data.toString());
+                }
+                //if float
+                else if (isFloat(data)) {
+                    buf.writeFloatLE(data, 0);
+                }
+                else
+                    throw new InvalidKnxDataException(data.toString());
                 break
             case 'string':
                 buf = new Buffer(data.toString());
@@ -85,11 +85,11 @@ KnxConnection.prototype.Action = function (address, data) {
         }
         data = buf;
     }
-    if(this.debug)
-    console.log("[%s] Sending %s to %s.", this.ClassName, data, address);
+    if (this.debug)
+        console.log("[%s] Sending %s to %s.", this.ClassName, data, address);
     this.knxSender.Action(address, data);
-    if(this.debug)
-    console.log("[%s] Sent %s to %s.", this.ClassName, data, address);
+    if (this.debug)
+        console.log("[%s] Sent %s to %s.", this.ClassName, data, address);
 }
 
 // TODO: It would be good to make a type for address, to make sure not any random string can be passed in
@@ -98,11 +98,11 @@ KnxConnection.prototype.Action = function (address, data) {
 /// </summary>
 /// <param name="address"></param>
 KnxConnection.prototype.RequestStatus = function (address) {
-    if(this.debug)
-    console.log("[%s] Sending request status to %s.", this.ClassName, address);
+    if (this.debug)
+        console.log("[%s] Sending request status to %s.", this.ClassName, address);
     this.knxSender.RequestStatus(address);
-    if(this.debug)
-    console.log("[%s] Sent request status to %s.", this.ClassName, address);
+    if (this.debug)
+        console.log("[%s] Sent request status to %s.", this.ClassName, address);
 }
 
 /// <summary>

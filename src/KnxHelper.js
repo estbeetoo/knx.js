@@ -1,6 +1,7 @@
 /**
  * Created by aborovsky on 24.08.2015.
  */
+var InvalidKnxAddressException = require('./InvalidKnxAddressException');
 var KnxHelper = {};
 
 //           +-----------------------------------------------+
