@@ -1,12 +1,12 @@
 {
   "name": "knx.js",
-  "version": "0.0.1",
+  "version": "0.1.2",
   "private": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/estbeetoo/knx.js.git"
   },
-  "license": "MIT",
+  "license": "Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)",
   "author": {
     "name": "Alexander Borovsky",
     "email": "aborovsky@beetoo.me"
