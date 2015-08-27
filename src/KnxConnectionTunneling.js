@@ -2,6 +2,7 @@
  * Created by aborovsky on 24.08.2015.
  */
 
+var CONNECT_TIMEOUT = 5000;
 var KnxConnection = require('./KnxConnection');
 var KnxReceiverTunneling = require('./KnxReceiverTunneling');
 var KnxSenderTunneling = require('./KnxSenderTunneling');
@@ -65,10 +66,30 @@ KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
 ///     Start the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Connect = function (callback) {
+    if (this.connectTimeout)
+        clearTimeout(this.connectTimeout);
     if (this.connected && this._udpClient) {
         callback && callback();
         return true;
     }
+
+    var that = this;
+    this.connectTimeout = setTimeout(function () {
+        try {
+            this.knxReceiver.Stop();
+            this._udpClient.close();
+            this._udpClient = null;
+        }
+        catch (e) {
+            // ignore
+        }
+        this.connected = false;
+        callback && callback({msg: 'Error connecting: timeout'});
+    }, CONNECT_TIMEOUT);
+    this.once('connected', function () {
+        if (that.connectTimeout)
+            clearTimeout(that.connectTimeout);
+    });
     if (callback)
         this.once('connected', callback);
     try {
@@ -141,7 +162,7 @@ KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
 KnxConnectionTunneling.prototype.TerminateStateRequest = function () {
     if (this._stateRequestTimer == null)
         return;
-    clearInterval(this._stateRequestTimer);
+    clearTimeout(this._stateRequestTimer);
 }
 
 // TODO: I wonder if we can extract all these types of requests
