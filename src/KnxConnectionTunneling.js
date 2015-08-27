@@ -64,6 +64,10 @@ KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
 ///     Start the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Connect = function (callback) {
+    if (this.connected && this._udpClient) {
+        callback && callback();
+        return true;
+    }
     if (callback)
         this.once('connected', callback);
     try {
@@ -87,8 +91,8 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
         this.knxSender = new KnxSenderTunneling(this, this._udpClient, this.RemoteEndpoint);
     }
     else {
-        this.knxReceiver.SetClient(_udpClient);
-        this.knxSender.SetClient(_udpClient);
+        this.knxReceiver.SetClient(this._udpClient);
+        this.knxSender.SetClient(this._udpClient);
     }
 
     var that = this;
@@ -123,6 +127,7 @@ KnxConnectionTunneling.prototype.Disconnect = function () {
     this.emit('close');
     this.emit('disconnect');
     this.emit('disconnected');
+    this.connected = false;
 }
 
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {

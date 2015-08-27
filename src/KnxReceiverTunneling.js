@@ -33,7 +33,8 @@ KnxReceiverTunneling.prototype.Stop = function () {
     this._udpClient.off('message', this.socketReceiveLstnr);
 }
 KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) {
-    console.log('ProcessDatagram datagram[%s]', datagram.toString('hex'));
+    if (this.connection.debug)
+        console.log('ProcessDatagram datagram[%s]', datagram.toString('hex'));
     try {
         switch (KnxHelper.GetServiceType(datagram)) {
             case KnxHelper.SERVICE_TYPE.CONNECT_RESPONSE:
@@ -54,15 +55,7 @@ KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) 
         }
     }
     catch (e) {
-        console.log(e.Message);
-        console.log(e.toString());
-        console.log(e.StackTrace);
-        if (e.InnerException != null) {
-            console.log(e.InnerException.Message);
-            console.log(e.toString());
-            console.log(e.InnerException.StackTrace);
-        }
-        // ignore, missing warning information
+        console.log('Error processing datagram[' + datagram.toString('hex') + '] inside of KnxReceiverTunneling.prototype.ProcessDatagram, cause: ' + e.toLocaleString());
     }
 }
 
@@ -134,6 +127,7 @@ KnxReceiverTunneling.prototype.ProcessConnectionStateResponse = function (/*buff
     var response = datagram[7];
     if (response != 0x21)
         return;
+    if (this.connection.debug)
     console.log("KnxReceiverTunneling: Received connection state response - No active connection with channel ID %s", knxDatagram.channel_id);
     this.connection.emit('close');
 }
@@ -159,6 +153,7 @@ KnxReceiverTunneling.prototype.ProcessConnectResponse = function (/*buffer*/ dat
     else {
         this.connection.ChannelId = knxDatagram.channel_id;
         this.connection.ResetSequenceNumber();
+        this.connection.connected = true;
         this.connection.emit('connected');
     }
 }

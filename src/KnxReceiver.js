@@ -97,7 +97,7 @@ KnxReceiver.prototype.ProcessCEMI = function (/*KnxDatagram*/ datagram, /*buffer
 
         datagram.data = KnxHelper.GetData(datagram.data_length, datagram.apdu);
 
-        if (this.connection.Debug) {
+        if (this.connection.debug) {
             console.log("-----------------------------------------------------------------------------------------------------");
             console.log(BitConverter.ToString(cemi));
             console.log("Event Header Length: " + datagram.header_length);

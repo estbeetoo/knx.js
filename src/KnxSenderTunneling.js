@@ -17,9 +17,13 @@ KnxSenderTunneling.prototype.SetClient = function (/*UdpClient*/ client) {
 }
 
 KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram) {
+    var that = this;
+
     function callback(err) {
-        console.log('udp sent, err[' + err + ']');
+        if (that.connection.debug)
+            console.log('udp sent, err[' + err + ']');
     }
+
     this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback)
 }
 
@@ -27,9 +31,11 @@ KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram) {
  WTF? Why we send 4 times?
  */
 KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram) {
+    var that = this;
 
     function callback(err) {
-        console.log('udp sent, err[' + err + ']');
+        if (that.connection.debug)
+            console.log('udp sent, err[' + err + ']');
     }
 
     this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);

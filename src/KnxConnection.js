@@ -26,6 +26,7 @@ function KnxConnection(host, port) {
             result[3] = parseInt(arr[3]) & 255;
         }
     };
+    this.connected = false;
 
     this.ActionMessageCode = 0x00;
     this.ThreeLevelGroupAddressing = true;
@@ -84,8 +85,10 @@ KnxConnection.prototype.Action = function (address, data) {
         }
         data = buf;
     }
+    if(this.debug)
     console.log("[%s] Sending %s to %s.", this.ClassName, data, address);
     this.knxSender.Action(address, data);
+    if(this.debug)
     console.log("[%s] Sent %s to %s.", this.ClassName, data, address);
 }
 
@@ -95,8 +98,10 @@ KnxConnection.prototype.Action = function (address, data) {
 /// </summary>
 /// <param name="address"></param>
 KnxConnection.prototype.RequestStatus = function (address) {
+    if(this.debug)
     console.log("[%s] Sending request status to %s.", this.ClassName, address);
     this.knxSender.RequestStatus(address);
+    if(this.debug)
     console.log("[%s] Sent request status to %s.", this.ClassName, address);
 }
 
