@@ -15,8 +15,8 @@ function KnxDatagram(options)
 
     // CEMI
     /*byte*/    this.message_code = options.message_code;
-    /*int*/     this.aditional_info_length = options.aditional_info_length;
-    /*byte[]*/  this.aditional_info = options.aditional_info;
+    /*int*/     this.additional_info_length = options.additional_info_length;
+    /*byte[]*/  this.additional_info = options.additional_info;
     /*byte*/    this.control_field_1 = options.control_field_1;
     /*byte*/    this.control_field_2 = options.control_field_2;
     /*string*/  this.source_address = options.source_address;

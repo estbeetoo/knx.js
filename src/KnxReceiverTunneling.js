@@ -78,15 +78,15 @@ KnxReceiverTunneling.prototype.ProcessDatagramHeaders = function (/*buffer*/ dat
 
     var sequenceNumber = datagram[8];
     var process = true;
-    if (sequenceNumber <= this._rxSequenceNumber)
+    if (sequenceNumber && this._rxSequenceNumber && sequenceNumber <= this._rxSequenceNumber)
         process = false;
 
     this._rxSequenceNumber = sequenceNumber;
 
     if (process) {
         // TODO: Magic number 10, what is it?
-        var cemi = new Buffer(datagram.Length - 10);
-        datagram.copy(cemi, 0, 10, datagram.length - 10);
+        var cemi = new Buffer(datagram.length - 10);
+        datagram.copy(cemi, 0, 10, datagram.length);
         this.ProcessCEMI(knxDatagram, cemi);
     }
 

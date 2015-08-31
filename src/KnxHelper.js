@@ -194,13 +194,13 @@ KnxHelper.GetAddress_ = function (address) {
 //   3-0  | Extended Frame Format - 0x0 standard frame
 //  ------+---------------------------------------------------------------
 
-KnxHelper.KnxDestinationAddressType =
-{
+
+KnxDestinationAddressType = KnxHelper.KnxDestinationAddressType = {
     INDIVIDUAL: 0,
     GROUP: 1
 }
 
-KnxHelper.KnxDestinationAddressType.GetKnxDestinationAddressType = function (control_field_2) {
+KnxHelper.GetKnxDestinationAddressType = function (control_field_2) {
     return (0x80 & control_field_2) != 0
         ? KnxDestinationAddressType.GROUP
         : KnxDestinationAddressType.INDIVIDUAL;
@@ -244,16 +244,17 @@ KnxHelper.KnxDestinationAddressType.GetKnxDestinationAddressType = function (con
 KnxHelper.GetData = function (dataLength, apdu /*buffer*/) {
     switch (dataLength) {
         case 0:
-            return string.Empty;
+            return '';
         case 1:
-            return Convert.ToChar(0x3F & apdu[1]).toString();
+            //TODO: originally, here is utf code to char convert (String.fromCharCode).
+            return parseInt(0x3F & apdu[1], 10).toString();
         case 2:
-            return Convert.ToChar(apdu[2]).toString();
+            //TODO: originally, here is utf code to char convert (String.fromCharCode).
+            return parseInt(apdu[2]).toString();
         default:
-            var data = string.Empty;
-            for (var i = 2; i < apdu.length; i++)
-                data += Convert.ToChar(apdu[i]);
-
+            var data = new Buffer(apdu.length);
+            //TODO: originally, here is utf code to char convert (String.fromCharCode).
+            apdu[i].copy(data);
             return data;
     }
 }

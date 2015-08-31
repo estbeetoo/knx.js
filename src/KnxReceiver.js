@@ -66,58 +66,60 @@ KnxReceiver.prototype.ProcessCEMI = function (/*KnxDatagram*/ datagram, /*buffer
         //                    the KNX communication stack
         //
         datagram.message_code = cemi[0];
-        datagram.aditional_info_length = cemi[1];
+        datagram.additional_info_length = cemi[1];
 
-        if (datagram.aditional_info_length > 0) {
-            datagram.aditional_info = new Buffer(datagram.aditional_info_length);
-            for (var i = 0; i < datagram.aditional_info_length; i++) {
-                datagram.aditional_info[i] = cemi[2 + i];
+        if (datagram.additional_info_length > 0) {
+            datagram.additional_info = new Buffer(datagram.additional_info_length);
+            for (var i = 0; i < datagram.additional_info_length; i++) {
+                datagram.additional_info[i] = cemi[2 + i];
             }
         }
 
-        datagram.control_field_1 = cemi[2 + datagram.aditional_info_length];
-        datagram.control_field_2 = cemi[3 + datagram.aditional_info_length];
+        datagram.control_field_1 = cemi[2 + datagram.additional_info_length];
+        datagram.control_field_2 = cemi[3 + datagram.additional_info_length];
         var buf = new Buffer(2);
-        buf[0] = cemi[4 + datagram.aditional_info_length];
-        buf[1] = cemi[5 + datagram.aditional_info_length];
+        buf[0] = cemi[4 + datagram.additional_info_length];
+        buf[1] = cemi[5 + datagram.additional_info_length];
         datagram.source_address = KnxHelper.GetIndividualAddress(buf);
 
         buf = new Buffer(2);
-        buf[0] = cemi[6 + datagram.aditional_info_length];
-        buf[1] = cemi[7 + datagram.aditional_info_length];
+        buf[0] = cemi[6 + datagram.additional_info_length];
+        buf[1] = cemi[7 + datagram.additional_info_length];
 
         datagram.destination_address =
-            KnxHelper.GetKnxDestinationAddressType(datagram.control_field_2).Equals(KnxHelper.KnxDestinationAddressType.INDIVIDUAL) ? KnxHelper.GetIndividualAddress(buf) : KnxHelper.GetGroupAddress(buf, this.connection.ThreeLevelGroupAddressing);
+            (KnxHelper.GetKnxDestinationAddressType(datagram.control_field_2) === KnxHelper.KnxDestinationAddressType.INDIVIDUAL) ?
+                KnxHelper.GetIndividualAddress(buf) :
+                KnxHelper.GetGroupAddress(buf, this.connection.ThreeLevelGroupAddressing);
 
-        datagram.data_length = cemi[8 + datagram.aditional_info_length];
+        datagram.data_length = cemi[8 + datagram.additional_info_length];
         datagram.apdu = new Buffer(datagram.data_length + 1);
 
-        for (var i = 0; i < datagram.apdu.Length; i++)
-            datagram.apdu[i] = cemi[9 + i + datagram.aditional_info_length];
+        for (var i = 0; i < datagram.apdu.length; i++)
+            datagram.apdu[i] = cemi[9 + i + datagram.additional_info_length];
 
         datagram.data = KnxHelper.GetData(datagram.data_length, datagram.apdu);
 
         if (this.connection.debug) {
             console.log("-----------------------------------------------------------------------------------------------------");
-            console.log(BitConverter.ToString(cemi));
+            console.log(cemi.toString('hex'));
             console.log("Event Header Length: " + datagram.header_length);
-            console.log("Event Protocol Version: " + datagram.protocol_version.ToString("x"));
-            console.log("Event Service Type: 0x" + BitConverter.ToString(datagram.service_type).Replace("-", string.Empty));
+            console.log("Event Protocol Version: " + datagram.protocol_version);
+            console.log("Event Service Type: 0x" + datagram.service_type.toString('hex'));
             console.log("Event Total Length: " + datagram.total_length);
 
-            console.log("Event Message Code: " + datagram.message_code.ToString("x"));
-            console.log("Event Aditional Info Length: " + datagram.aditional_info_length);
+            console.log("Event Message Code: " + datagram.message_code);
+            console.log("Event Aditional Info Length: " + datagram.additional_info_length);
 
-            if (datagram.aditional_info_length > 0)
-                console.log("Event Aditional Info: 0x" + BitConverter.ToString(datagram.aditional_info).Replace("-", string.Empty));
+            if (datagram.additional_info_length > 0)
+                console.log("Event Aditional Info: 0x" + datagram.additional_info.toString('hex'));
 
-            console.log("Event Control Field 1: " + Convert.ToString(datagram.control_field_1, 2));
-            console.log("Event Control Field 2: " + Convert.ToString(datagram.control_field_2, 2));
+            console.log("Event Control Field 1: " + datagram.control_field_1);
+            console.log("Event Control Field 2: " + datagram.control_field_2);
             console.log("Event Source Address: " + datagram.source_address);
             console.log("Event Destination Address: " + datagram.destination_address);
             console.log("Event Data Length: " + datagram.data_length);
-            console.log("Event APDU: 0x" + BitConverter.ToString(datagram.apdu).Replace("-", string.Empty));
-            console.log("Event Data: " + datagram.data);
+            console.log("Event APDU: 0x" + datagram.apdu.toString('hex'));
+            console.log("Event Data: " + datagram.data.toString('hex'));
             console.log("-----------------------------------------------------------------------------------------------------");
         }
 
