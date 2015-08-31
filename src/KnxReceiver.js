@@ -130,10 +130,10 @@ KnxReceiver.prototype.ProcessCEMI = function (/*KnxDatagram*/ datagram, /*buffer
 
         switch (type) {
             case 8:
-                this.connection.emit('event', datagram.destination_address, datagram.data);
+                this.connection.emit('event', datagram.destination_address, datagram.data, datagram);
                 break;
             case 4:
-                this.connection.emit('status', datagram.destination_address, datagram.data);
+                this.connection.emit('status', datagram.destination_address, datagram.data, datagram);
                 break;
         }
     }
