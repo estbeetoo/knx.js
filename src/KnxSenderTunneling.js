@@ -16,29 +16,31 @@ KnxSenderTunneling.prototype.SetClient = function (/*UdpClient*/ client) {
     this._udpClient = client;
 }
 
-KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram) {
+KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram, callback) {
     var that = this;
 
-    function callback(err) {
+    function cb(err) {
         if (that.connection.debug)
             console.log('udp sent, err[' + err + ']');
+        callback && callback();
     }
 
-    this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback)
+    this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, cb)
 }
 
 /*
  WTF? Why we send 4 times?
  */
-KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram) {
+KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram, callback) {
     var that = this;
 
-    function callback(err) {
+    function cb(err) {
         if (that.connection.debug)
             console.log('udp sent, err[' + err + ']');
+        callback && callback();
     }
 
-    this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);
+    this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, cb);
     //this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);
     //this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);
     //this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);

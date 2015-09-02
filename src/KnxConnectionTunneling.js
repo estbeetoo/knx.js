@@ -9,6 +9,7 @@ var KnxSenderTunneling = require('./KnxSenderTunneling');
 var ConnectionErrorException = require('./ConnectionErrorException');
 var util = require('util');
 var dgram = require('dgram');
+var Promise = require('promise');
 
 
 /// <summary>
@@ -118,38 +119,50 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
     }
 
     var that = this;
-
-    this.knxReceiver.Start(function () {
-        that.InitializeStateRequest();
-
-        try {
+    new Promise(function (fulfill, reject) {
+        that.knxReceiver.Start(fulfill);
+    })
+        .
+        then(function () {
+            that.InitializeStateRequest();
+        })
+        .then(function () {
             that.ConnectRequest();
-        }
-        catch (e) {
-            // ignore
-        }
-        that.emit('connect');
-        that.emit('connecting');
-    });
+        })
+        .then(function () {
+            that.emit('connect');
+            that.emit('connecting');
+        });
 }
 
 /// <summary>
 ///     Stop the connection
 /// </summary>
-KnxConnectionTunneling.prototype.Disconnect = function () {
+KnxConnectionTunneling.prototype.Disconnect = function (callback) {
+    var that = this;
+
+    if (callback)
+        that.once('disconnect', callback);
+
     try {
         this.TerminateStateRequest();
-        this.DisconnectRequest();
-        this.knxReceiver.Stop();
-        this._udpClient.close();
+        new Promise(function (fulfill, reject) {
+            that.DisconnectRequest(fulfill);
+        })
+            .then(function () {
+                that.knxReceiver.Stop();
+                that._udpClient.close();
+                that.connected = false;
+                that.emit('close');
+                that.emit('disconnect');
+                that.emit('disconnected');
+            })
+
     }
     catch (e) {
-        // ignore
+        that.emit('disconnect', e);
     }
-    this.emit('close');
-    this.emit('disconnect');
-    this.emit('disconnected');
-    this.connected = false;
+
 }
 
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
@@ -166,7 +179,7 @@ KnxConnectionTunneling.prototype.TerminateStateRequest = function () {
 }
 
 // TODO: I wonder if we can extract all these types of requests
-KnxConnectionTunneling.prototype.ConnectRequest = function () {
+KnxConnectionTunneling.prototype.ConnectRequest = function (callback) {
     // HEADER
     var datagram = new Buffer(26);
     datagram[00] = 0x06;
@@ -196,10 +209,15 @@ KnxConnectionTunneling.prototype.ConnectRequest = function () {
     datagram[23] = 0x04;
     datagram[24] = 0x02;
     datagram[25] = 0x00;
-    this.knxSender.SendDataSingle(datagram);
+    try {
+        this.knxSender.SendDataSingle(datagram, callback);
+    }
+    catch (e) {
+        callback && callback();
+    }
 }
 
-KnxConnectionTunneling.prototype.StateRequest = function (sender, ElapsedEventArgs) {
+KnxConnectionTunneling.prototype.StateRequest = function (callback) {
     // HEADER
     var datagram = new Buffer(16);
     datagram[00] = 0x06;
@@ -221,14 +239,14 @@ KnxConnectionTunneling.prototype.StateRequest = function (sender, ElapsedEventAr
     datagram[15] = this._localEndpoint.port & 255;
 
     try {
-        this.knxSender.SendData(datagram);
+        this.knxSender.SendData(datagram, callback);
     }
     catch (e) {
-        // ignore
+        callback(e)
     }
 }
 
-KnxConnectionTunneling.prototype.DisconnectRequest = function () {
+KnxConnectionTunneling.prototype.DisconnectRequest = function (callback) {
     // HEADER
     var datagram = new Buffer(16);
     datagram[00] = 0x06;
@@ -248,7 +266,12 @@ KnxConnectionTunneling.prototype.DisconnectRequest = function () {
     datagram[13] = this._localEndpoint.toBytes()[3];
     datagram[14] = (this._localEndpoint.port >> 8) & 255;
     datagram[15] = this._localEndpoint.port & 255;
-    this.knxSender.SendData(datagram);
+    try {
+        this.knxSender.SendData(datagram, callback);
+    }
+    catch (e) {
+        callback(e)
+    }
 }
 
 module.exports = KnxConnectionTunneling;

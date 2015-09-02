@@ -5,12 +5,12 @@ function KnxSender(/*KnxConnection*/ connection) {
     this.connection = connection;
 }
 
-KnxSender.prototype.Action = function (destinationAddress, /*buffer*/ data) {
-    this.SendData(this.CreateActionDatagram(destinationAddress, data));
+KnxSender.prototype.Action = function (destinationAddress, /*buffer*/ data, callback) {
+    this.SendData(this.CreateActionDatagram(destinationAddress, data), callback);
 }
 
-KnxSender.prototype.RequestStatus = function (destinationAddress) {
-    this.SendData(this.CreateRequestStatusDatagram(destinationAddress));
+KnxSender.prototype.RequestStatus = function (destinationAddress, callback) {
+    this.SendData(this.CreateRequestStatusDatagram(destinationAddress), callback);
 }
 
 KnxSender.prototype.CreateActionDatagramCommon = function (destinationAddress, /*buffer*/data, /*buffer*/header) {

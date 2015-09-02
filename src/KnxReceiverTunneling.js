@@ -30,7 +30,7 @@ KnxReceiverTunneling.prototype.Start = function (callback) {
     this._udpClient.bind(this._localEndpoint.port, callback);
 }
 KnxReceiverTunneling.prototype.Stop = function () {
-    this._udpClient.off('message', this.socketReceiveLstnr);
+    this._udpClient.removeListener('message', this.socketReceiveLstnr);
 }
 KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) {
     if (this.connection.debug)
