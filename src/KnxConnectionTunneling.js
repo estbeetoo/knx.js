@@ -67,6 +67,8 @@ KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
 ///     Start the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Connect = function (callback) {
+    if (this.reConnectTimeout)
+        clearTimeout(this.reConnectTimeout);
     if (this.connectTimeout)
         clearTimeout(this.connectTimeout);
     if (this.connected && this._udpClient) {
@@ -76,23 +78,27 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
 
     var that = this;
     this.connectTimeout = setTimeout(function () {
-        try {
-            this.knxReceiver.Stop();
-            this._udpClient.close();
-            this._udpClient = null;
-        }
-        catch (e) {
-            // ignore
-        }
-        this.connected = false;
-        callback && callback({msg: 'Error connecting: timeout'});
+        that.Disconnect(function () {
+            if (that.debug)
+                console.log('Error connecting: timeout');
+            callback && callback({msg: 'Error connecting: timeout', reason: 'CONNECTTIMEOUT'});
+            if (this.reConnectTimeout)
+                clearTimeout(this.reConnectTimeout);
+            this.reConnectTimeout = setTimeout(function () {
+                if (that.debug)
+                    console.log('reconnecting');
+                that.Connect(callback);
+            }, 3 * CONNECT_TIMEOUT);
+        });
     }, CONNECT_TIMEOUT);
     this.once('connected', function () {
         if (that.connectTimeout)
             clearTimeout(that.connectTimeout);
     });
-    if (callback)
+    if (callback) {
+        this.removeListener('connected', callback);
         this.once('connected', callback);
+    }
     try {
         if (this._udpClient != null) {
             try {
@@ -165,10 +171,58 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
 
 }
 
+function delay(time) {
+    return new Promise(function (fulfill, reject) {
+        console.log('delay for ' + time + 'ms');
+        setTimeout(fulfill, time);
+    });
+}
+
+function timeout(func, time, timeoutFunc) {
+
+    var success = null;
+
+    var succPromise = new Promise(function (fulfill, reject) {
+        func(function () {
+            if (success === null) {
+                fulfill();
+                success = true;
+            }
+            else
+                reject();
+        });
+    });
+
+    var timeoutPromise = delay(time);
+
+    timeoutPromise.then(function () {
+        if (!success)
+            return timeoutFunc && timeoutFunc();
+    });
+
+    return Promise.race([succPromise, timeoutPromise]);
+}
+
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
     var self = this;
     this._stateRequestTimer = setInterval(function () {
-        self.StateRequest();
+        timeout(function (fulfill) {
+            self.removeListener('alive', fulfill);
+            self.StateRequest(function (err) {
+                if (!err)
+                    self.once('alive', function () {
+                        fulfill();
+                    });
+            });
+        }, 2 * CONNECT_TIMEOUT, function () {
+            if (self.debug)
+                console.log('connection stale, so disconnect and then try to reconnect again');
+            new Promise(function (fulfill) {
+                self.Disconnect(fulfill);
+            }).then(function () {
+                    self.Connect();
+                });
+        });
     }, 60000); // same time as ETS with group monitor open
 }
 

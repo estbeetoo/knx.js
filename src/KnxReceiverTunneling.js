@@ -125,11 +125,13 @@ KnxReceiverTunneling.prototype.ProcessConnectionStateResponse = function (/*buff
         channel_id: datagram[6]
     });
     var response = datagram[7];
-    if (response != 0x21)
+    if (response != 0x21) {
+        this.connection.emit('alive');
         return;
+    }
     if (this.connection.debug)
-    console.log("KnxReceiverTunneling: Received connection state response - No active connection with channel ID %s", knxDatagram.channel_id);
-    this.connection.emit('close');
+        console.log("KnxReceiverTunneling: Received connection state response - No active connection with channel ID %s", knxDatagram.channel_id);
+    this.Disconnect();
 }
 
 KnxReceiverTunneling.prototype.ProcessConnectResponse = function (/*buffer*/ datagram) {
