@@ -86,6 +86,7 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
     }
 
     this.connectTimeout = setTimeout(function () {
+        that.removeListener('connected', clearConnectTimeout);
         that.Disconnect(function () {
             if (that.debug)
                 console.log('Error connecting: timeout');
@@ -98,7 +99,6 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
             }, 3 * CONNECT_TIMEOUT);
         });
     }, CONNECT_TIMEOUT);
-    this.removeListener('connected', clearConnectTimeout);
     this.once('connected', clearConnectTimeout);
     if (callback) {
         this.removeListener('connected', callback);
