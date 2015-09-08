@@ -67,23 +67,30 @@ KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
 ///     Start the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Connect = function (callback) {
-    if (this.reConnectTimeout)
-        clearTimeout(this.reConnectTimeout);
-    if (this.connectTimeout)
-        clearTimeout(this.connectTimeout);
+    var that = this;
+
+    function clearReconnectTimeout() {
+        if (that.reConnectTimeout)
+            clearTimeout(that.reConnectTimeout);
+
+    }
+
+    function clearConnectTimeout() {
+        if (that.connectTimeout)
+            clearTimeout(that.connectTimeout);
+    }
+
     if (this.connected && this._udpClient) {
         callback && callback();
         return true;
     }
 
-    var that = this;
     this.connectTimeout = setTimeout(function () {
         that.Disconnect(function () {
             if (that.debug)
                 console.log('Error connecting: timeout');
             callback && callback({msg: 'Error connecting: timeout', reason: 'CONNECTTIMEOUT'});
-            if (this.reConnectTimeout)
-                clearTimeout(this.reConnectTimeout);
+            clearReconnectTimeout();
             this.reConnectTimeout = setTimeout(function () {
                 if (that.debug)
                     console.log('reconnecting');
@@ -91,10 +98,8 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
             }, 3 * CONNECT_TIMEOUT);
         });
     }, CONNECT_TIMEOUT);
-    this.once('connected', function () {
-        if (that.connectTimeout)
-            clearTimeout(that.connectTimeout);
-    });
+    this.removeListener('connected', clearConnectTimeout);
+    this.once('connected', clearConnectTimeout);
     if (callback) {
         this.removeListener('connected', callback);
         this.once('connected', callback);
