@@ -23,7 +23,7 @@ KnxReceiverTunneling.prototype.Start = function (callback) {
         try {
             that.ProcessDatagram(msg);
         } catch (e) {
-            console.log('Error processing KNX incoming datagram[' + msg.toString('hex') + '], cause: ' + e.toLocaleString());
+            console.error('Error processing KNX incoming datagram[' + msg.toString('hex') + '], cause: ' + e.toLocaleString());
         }
     }
     this._udpClient.on('message', this.socketReceiveLstnr);
@@ -55,7 +55,7 @@ KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) 
         }
     }
     catch (e) {
-        console.log('Error processing datagram[' + datagram.toString('hex') + '] inside of KnxReceiverTunneling.prototype.ProcessDatagram, cause: ' + e.toLocaleString());
+        console.error('Error processing datagram[' + datagram.toString('hex') + '] inside of KnxReceiverTunneling.prototype.ProcessDatagram, cause: ' + e.toLocaleString());
     }
 }
 
