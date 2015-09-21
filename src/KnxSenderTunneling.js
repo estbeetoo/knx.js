@@ -21,7 +21,7 @@ KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram, cal
 
     function cb(err) {
         if (that.connection.debug)
-            console.log('udp sent, err[' + err + ']');
+            console.log('udp sent, err[' + (err ? err.toString() : 'no_err') + ']');
         callback && callback();
     }
 
@@ -36,7 +36,7 @@ KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram, callback) 
 
     function cb(err) {
         if (that.connection.debug)
-            console.log('udp sent, err[' + err + ']');
+            console.log('udp sent, err[' + (err ? err.toString() : 'no_err') + ']');
         callback && callback();
     }
 

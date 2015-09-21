@@ -78,7 +78,6 @@ util.inherits(KnxConnection, EventEmitter);
  List 3-byte value                  3 Byte                  DPT 232	    DPT 232	RGB[0,0,0]...[255,255,255]
  */
 KnxConnection.prototype.Action = function (address, data) {
-
     if (!Buffer.isBuffer(data)) {
         var buf = null;
         switch (typeof(data)) {
@@ -103,6 +102,7 @@ KnxConnection.prototype.Action = function (address, data) {
                 }
                 //if float
                 else if (isFloat(data)) {
+                    buf = new Buffer(4);
                     buf.writeFloatLE(data, 0);
                 }
                 else
@@ -126,10 +126,10 @@ KnxConnection.prototype.Action = function (address, data) {
 ///     Send a request to KNX asking for specified address current status
 /// </summary>
 /// <param name="address"></param>
-KnxConnection.prototype.RequestStatus = function (address) {
+KnxConnection.prototype.RequestStatus = function (address, callback) {
     if (this.debug)
         console.log("[%s] Sending request status to %s.", this.ClassName, address);
-    this.knxSender.RequestStatus(address);
+    this.knxSender.RequestStatus(address, callback);
     if (this.debug)
         console.log("[%s] Sent request status to %s.", this.ClassName, address);
 }

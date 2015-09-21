@@ -70,14 +70,17 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
     var that = this;
 
     function clearReconnectTimeout() {
-        if (that.reConnectTimeout)
+        if (that.reConnectTimeout) {
             clearTimeout(that.reConnectTimeout);
-
+            delete that.reConnectTimeout;
+        }
     }
 
     function clearConnectTimeout() {
-        if (that.connectTimeout)
+        if (that.connectTimeout) {
             clearTimeout(that.connectTimeout);
+            delete that.connectTimeout;
+        }
     }
 
     if (this.connected && this._udpClient) {
@@ -306,6 +309,10 @@ KnxConnectionTunneling.prototype.StateRequest = function (callback) {
 }
 
 KnxConnectionTunneling.prototype.DisconnectRequest = function (callback) {
+    if(!this.connected) {
+        callback && callback();
+        return false;
+    }
     // HEADER
     var datagram = new Buffer(16);
     datagram[00] = 0x06;

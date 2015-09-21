@@ -52,6 +52,9 @@ KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) 
             case KnxHelper.SERVICE_TYPE.TUNNELLING_REQUEST:
                 this.ProcessDatagramHeaders(datagram);
                 break;
+            default:
+                console.log('Unknown serviceType of datagram[%s]', datagram.toString('hex'));
+                break;
         }
     }
     catch (e) {

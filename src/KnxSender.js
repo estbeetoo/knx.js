@@ -10,7 +10,8 @@ KnxSender.prototype.Action = function (destinationAddress, /*buffer*/ data, call
 }
 
 KnxSender.prototype.RequestStatus = function (destinationAddress, callback) {
-    this.SendData(this.CreateRequestStatusDatagram(destinationAddress), callback);
+    callback && this.connection.once('status.' + destinationAddress.toString(), callback);
+    this.SendData(this.CreateRequestStatusDatagram(destinationAddress));
 }
 
 KnxSender.prototype.CreateActionDatagramCommon = function (destinationAddress, /*buffer*/data, /*buffer*/header) {
