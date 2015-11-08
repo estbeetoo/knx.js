@@ -146,17 +146,6 @@ KnxConnection.prototype.FromDataPoint = function (type, /*buffer*/data) {
 }
 
 /// <summary>
-///     Convert a value received from KNX using datapoint translator, e.g.,
-///     get a temperature value in Celsius
-/// </summary>
-/// <param name="type">Datapoint type, e.g.: 9.001</param>
-/// <param name="data">Data to convert</param>
-/// <returns></returns>
-KnxConnection.prototype.FromDataPoint = function (type, /*buffer*/data) {
-    return DataPointTranslator.Instance.FromDataPoint(type, data);
-}
-
-/// <summary>
 ///     Convert a value to send to KNX using datapoint translator, e.g.,
 ///     get a temperature value in Celsius in a byte representation
 /// </summary>
