@@ -181,7 +181,7 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
 
 function delay(time) {
     return new Promise(function (fulfill, reject) {
-        //console.log('delay for ' + time + 'ms');
+        console.log('delay for ' + time + 'ms');
         setTimeout(fulfill, time);
     });
 }

@@ -28,7 +28,7 @@ KnxSender.prototype.CreateActionDatagramCommon = function (destinationAddress, /
     // |  Msg   |Add.Info| Ctrl 1 | Ctrl 2 | Source Address | Dest. Address  |  Data  |      APDU      |
     // | Code   | Length |        |        |                |                | Length |                |
     // +--------+--------+--------+--------+----------------+----------------+--------+----------------+
-    //   1 byte   1 byte   1 byte   1 byte      2 bytes          2 bytes       1 byte      2 bytes
+    59//   1 byte   1 byte   1 byte   1 byte      2 bytes          2 bytes       1 byte      2 bytes
     //
     //  Message Code    = 0x11 - a L_Data.req primitive
     //      COMMON EMI MESSAGE CODES FOR DATA LINK LAYER PRIMITIVES
@@ -95,6 +95,8 @@ KnxSender.prototype.CreateActionDatagramCommon = function (destinationAddress, /
     datagram[i++] = 0x00;
     datagram[i] = 0x80;
     KnxHelper.WriteData(datagram, data, i);
+    this.connection.debug && console.log('KnxSender.CreateActionDatagramCommon datagram[%s]', datagram.toString('hex'));
+    debugger;
     return datagram;
 }
 

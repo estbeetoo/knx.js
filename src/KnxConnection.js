@@ -115,10 +115,10 @@ KnxConnection.prototype.Action = function (address, data) {
         data = buf;
     }
     if (this.debug)
-        console.log("[%s] Sending %s to %s.", this.ClassName, data, address);
+        console.log("[%s] Sending %s to %s.", this.ClassName, JSON.stringify(data), JSON.stringify(address));
     this.knxSender.Action(address, data);
     if (this.debug)
-        console.log("[%s] Sent %s to %s.", this.ClassName, data, address);
+        console.log("[%s] Sent %s to %s.", this.ClassName, JSON.stringify(data), JSON.stringify(address));
 }
 
 // TODO: It would be good to make a type for address, to make sure not any random string can be passed in
@@ -128,10 +128,10 @@ KnxConnection.prototype.Action = function (address, data) {
 /// <param name="address"></param>
 KnxConnection.prototype.RequestStatus = function (address, callback) {
     if (this.debug)
-        console.log("[%s] Sending request status to %s.", this.ClassName, address);
+        console.log("[%s] Sending request status to %s.", this.ClassName, JSON.stringify(address));
     this.knxSender.RequestStatus(address, callback);
     if (this.debug)
-        console.log("[%s] Sent request status to %s.", this.ClassName, address);
+        console.log("[%s] Sent request status to %s.", this.ClassName, JSON.stringify(address));
 }
 
 /// <summary>
