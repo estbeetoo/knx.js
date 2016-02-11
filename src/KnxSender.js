@@ -96,7 +96,6 @@ KnxSender.prototype.CreateActionDatagramCommon = function (destinationAddress, /
     datagram[i] = 0x80;
     KnxHelper.WriteData(datagram, data, i);
     this.connection.debug && console.log('KnxSender.CreateActionDatagramCommon datagram[%s]', datagram.toString('hex'));
-    debugger;
     return datagram;
 }
 
