@@ -49,17 +49,17 @@ KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram, callback) 
 KnxSenderTunneling.prototype.SendTunnelingAck = function (sequenceNumber) {
     // HEADER
     var datagram = new Buffer(10);
-    datagram[00] = 0x06;
-    datagram[01] = 0x10;
-    datagram[02] = 0x04;
-    datagram[03] = 0x21;
-    datagram[04] = 0x00;
-    datagram[05] = 0x0A;
+    datagram[0] = 0x06;
+    datagram[1] = 0x10;
+    datagram[2] = 0x04;
+    datagram[3] = 0x21;
+    datagram[4] = 0x00;
+    datagram[5] = 0x0A;
 
-    datagram[06] = 0x04;
-    datagram[07] = this.connection.ChannelId;
-    datagram[08] = sequenceNumber;
-    datagram[09] = 0x00;
+    datagram[6] = 0x04;
+    datagram[7] = this.connection.ChannelId;
+    datagram[8] = sequenceNumber;
+    datagram[9] = 0x00;
 
     this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host);
 }
@@ -70,21 +70,21 @@ KnxSenderTunneling.prototype.CreateActionDatagram = function (/*string*/ destina
 
         // HEADER
         var datagram = new Buffer(10);
-        datagram[00] = 0x06;
-        datagram[01] = 0x10;
-        datagram[02] = 0x04;
-        datagram[03] = 0x20;
+        datagram[0] = 0x06;
+        datagram[1] = 0x10;
+        datagram[2] = 0x04;
+        datagram[3] = 0x20;
 
         var totalLength = dataLength + 20;
         var buf = new Buffer(2);
         buf.writeUInt16LE(totalLength);
-        datagram[04] = buf[1];
-        datagram[05] = buf[0];
+        datagram[4] = buf[1];
+        datagram[5] = buf[0];
 
-        datagram[06] = 0x04;
-        datagram[07] = this.connection.ChannelId;
-        datagram[08] = this.connection.GenerateSequenceNumber();
-        datagram[09] = 0x00;
+        datagram[6] = 0x04;
+        datagram[7] = this.connection.ChannelId;
+        datagram[8] = this.connection.GenerateSequenceNumber();
+        datagram[9] = 0x00;
 
         return this.CreateActionDatagramCommon(destinationAddress, data, datagram);
     }
@@ -99,17 +99,17 @@ KnxSenderTunneling.prototype.CreateRequestStatusDatagram = function (/*string*/ 
     try {
         // HEADER
         var datagram = new Buffer(21);
-        datagram[00] = 0x06;
-        datagram[01] = 0x10;
-        datagram[02] = 0x04;
-        datagram[03] = 0x20;
-        datagram[04] = 0x00;
-        datagram[05] = 0x15;
+        datagram[0] = 0x06;
+        datagram[1] = 0x10;
+        datagram[2] = 0x04;
+        datagram[3] = 0x20;
+        datagram[4] = 0x00;
+        datagram[5] = 0x15;
 
-        datagram[06] = 0x04;
-        datagram[07] = this.connection.ChannelId;
-        datagram[08] = this.connection.GenerateSequenceNumber();
-        datagram[09] = 0x00;
+        datagram[6] = 0x04;
+        datagram[7] = this.connection.ChannelId;
+        datagram[8] = this.connection.GenerateSequenceNumber();
+        datagram[9] = 0x00;
 
         return this.CreateRequestStatusDatagramCommon(destinationAddress, datagram, 10);
     }
