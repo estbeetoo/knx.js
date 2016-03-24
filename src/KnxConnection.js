@@ -77,7 +77,7 @@ util.inherits(KnxConnection, EventEmitter);
  Unlimited string 8859_1            .                       DPT 24	    DPT 24
  List 3-byte value                  3 Byte                  DPT 232	    DPT 232	RGB[0,0,0]...[255,255,255]
  */
-KnxConnection.prototype.Action = function (address, data) {
+KnxConnection.prototype.Action = function (address, data, callback) {
     if (!Buffer.isBuffer(data)) {
         var buf = null;
         switch (typeof(data)) {
@@ -116,7 +116,7 @@ KnxConnection.prototype.Action = function (address, data) {
     }
     if (this.debug)
         console.log("[%s] Sending %s to %s.", this.ClassName, JSON.stringify(data), JSON.stringify(address));
-    this.knxSender.Action(address, data);
+    this.knxSender.Action(address, data, callback);
     if (this.debug)
         console.log("[%s] Sent %s to %s.", this.ClassName, JSON.stringify(data), JSON.stringify(address));
 }
