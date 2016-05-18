@@ -63,25 +63,29 @@ KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
     this._sequenceNumber = 0x00;
 }
 
+KnxConnectionTunneling.prototype.ClearReconnectTimeout = function () {
+    var that = this;
+
+    if (that.reConnectTimeout) {
+        clearTimeout(that.reConnectTimeout);
+        delete that.reConnectTimeout;
+    }
+}
+
+KnxConnectionTunneling.prototype.ClearConnectTimeout = function () {
+    var that = this;
+
+    if (that.connectTimeout) {
+        clearTimeout(that.connectTimeout);
+        delete that.connectTimeout;
+    }
+}
+
 /// <summary>
 ///     Start the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Connect = function (callback) {
     var that = this;
-
-    function clearReconnectTimeout() {
-        if (that.reConnectTimeout) {
-            clearTimeout(that.reConnectTimeout);
-            delete that.reConnectTimeout;
-        }
-    }
-
-    function clearConnectTimeout() {
-        if (that.connectTimeout) {
-            clearTimeout(that.connectTimeout);
-            delete that.connectTimeout;
-        }
-    }
 
     if (this.connected && this._udpClient) {
         callback && callback();
@@ -89,12 +93,12 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
     }
 
     this.connectTimeout = setTimeout(function () {
-        that.removeListener('connected', clearConnectTimeout);
+        that.removeListener('connected', that.ClearConnectTimeout);
         that.Disconnect(function () {
             if (that.debug)
                 console.log('Error connecting: timeout');
             callback && callback({msg: 'Error connecting: timeout', reason: 'CONNECTTIMEOUT'});
-            clearReconnectTimeout();
+            that.ClearReconnectTimeout();
             this.reConnectTimeout = setTimeout(function () {
                 if (that.debug)
                     console.log('reconnecting');
@@ -102,7 +106,7 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
             }, 3 * CONNECT_TIMEOUT);
         });
     }, CONNECT_TIMEOUT);
-    this.once('connected', clearConnectTimeout);
+    this.once('connected', that.ClearConnectTimeout);
     if (callback) {
         this.removeListener('connected', callback);
         this.once('connected', callback);
@@ -154,6 +158,9 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
 /// </summary>
 KnxConnectionTunneling.prototype.Disconnect = function (callback) {
     var that = this;
+
+    that.ClearConnectTimeout();
+    that.ClearReconnectTimeout();
 
     if (callback)
         that.once('disconnect', callback);
