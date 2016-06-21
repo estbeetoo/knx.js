@@ -221,7 +221,7 @@ KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
     var self = this;
     this._stateRequestTimer = setInterval(function () {
         timeout(function (fulfill) {
-            self.removeListener('alive', fulfill);
+            self.removeAllListeners('alive');
             self.StateRequest(function (err) {
                 if (!err)
                     self.once('alive', fulfill);
