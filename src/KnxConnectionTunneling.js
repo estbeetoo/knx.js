@@ -224,9 +224,7 @@ KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
             self.removeListener('alive', fulfill);
             self.StateRequest(function (err) {
                 if (!err)
-                    self.once('alive', function () {
-                        fulfill();
-                    });
+                    self.once('alive', fulfill);
             });
         }, 2 * CONNECT_TIMEOUT, function () {
             if (self.debug)
