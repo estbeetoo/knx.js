@@ -49,6 +49,9 @@ KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) 
             case KnxHelper.SERVICE_TYPE.DISCONNECT_REQUEST:
                 this.ProcessDisconnectRequest(datagram);
                 break;
+            case KnxHelper.SERVICE_TYPE.DISCONNECT_RESPONSE:
+                this.ProcessDisconnectResponse(datagram);
+                break;
             case KnxHelper.SERVICE_TYPE.TUNNELLING_REQUEST:
                 this.ProcessDatagramHeaders(datagram);
                 break;
@@ -97,13 +100,15 @@ KnxReceiverTunneling.prototype.ProcessDatagramHeaders = function (/*buffer*/ dat
 }
 
 KnxReceiverTunneling.prototype.ProcessDisconnectRequest = function (/*buffer*/ datagram) {
+    this.connection.DisconnectRequest();
+}
+
+KnxReceiverTunneling.prototype.ProcessDisconnectResponse = function (/*buffer*/ datagram) {
     var channelId = datagram[6];
     if (channelId != this.connection.ChannelId)
         return;
 
-    this.stop();
-    this.connection.emit('close');
-    this._udpClient.close();
+    this.connection.Disconnect();
 }
 
 /*
