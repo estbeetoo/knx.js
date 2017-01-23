@@ -119,6 +119,7 @@ KnxSender.prototype.CreateRequestStatusDatagramCommon = function (destinationAdd
     datagram[cemi_start_pos + i++] = 0x00;
     datagram[cemi_start_pos + i] = 0x00;
 
+    this.connection.debug && console.log('KnxSender.CreateRequestStatusDatagramCommon datagram[%s]', datagram.toString('hex'));
     return datagram;
 }
 

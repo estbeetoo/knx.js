@@ -35,6 +35,29 @@ var KnxHelper = {};
 //           +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 //           |  | Main Grp  |            Sub Group           |
 //           +--+--------------------+-----------------------+
+
+KnxHelper.ldexp = function (mantissa, exponent) {
+    return exponent > 1023 // avoid multiplying by infinity
+        ? mantissa * Math.pow(2, 1023) * Math.pow(2, exponent - 1023)
+        : exponent < -1074 // avoid multiplying by zero
+        ? mantissa * Math.pow(2, -1074) * Math.pow(2, exponent + 1074)
+        : mantissa * Math.pow(2, exponent);
+}
+
+KnxHelper.frexp = function (value) {
+    if (value === 0) return [value, 0];
+    var data = new DataView(new ArrayBuffer(8));
+    data.setFloat64(0, value);
+    var bits = (data.getUint32(0) >>> 20) & 0x7FF;
+    if (bits === 0) {
+        data.setFloat64(0, value * Math.pow(2, 64));
+        bits = ((data.getUint32(0) >>> 20) & 0x7FF) - 64;
+    }
+    var exponent = bits - 1022,
+        mantissa = this.ldexp(value, -exponent);
+    return [mantissa, exponent];
+}
+
 KnxHelper.IsAddressIndividual = function (address) {
     return address.indexOf('.') !== -1;
 }
@@ -251,6 +274,14 @@ KnxHelper.GetData = function (dataLength, apdu /*buffer*/) {
         case 2:
             //TODO: originally, here is utf code to char convert (String.fromCharCode).
             return parseInt(apdu[2]).toString();
+        case 3:
+            var sign     =  apdu[2] >> 7;
+            var exponent = (apdu[2] & 0b01111000) >> 3;
+            var mantissa = 256 * (apdu[2] & 0b00000111) + apdu[3];
+            mantissa = (sign == 1) ? ~(mantissa^2047) : mantissa;
+
+            //TODO: originally, here is utf code to char convert (String.fromCharCode).
+            return this.ldexp((0.01*mantissa), exponent).toString();
         default:
             var data = new Buffer(apdu.length);
             //TODO: originally, here is utf code to char convert (String.fromCharCode).
@@ -266,6 +297,9 @@ KnxHelper.GetDataLength = function (/*buffer*/ data) {
     if (data.length == 1 && data[0] < 0x3F)
         return 1;
 
+    if (data.length == 4)
+        return 3;
+
     if (data[0] < 0x3F)
         return data.length;
 
@@ -280,8 +314,33 @@ KnxHelper.WriteData = function (/*buffer*/ datagram, /*buffer*/ data, dataStart)
         else {
             datagram[dataStart + 1] = data[0];
         }
-    }
-    else if (data.length > 1) {
+    } else if (data.length == 4) {
+        var value = data.readFloatLE(0);
+        var apdu_data;
+        if (!isFinite(value)) {
+            console.log( "DPT9: cannot write non-numeric or undefined value" );
+        } else {
+            var arr = this.frexp(value);
+            var mantissa = arr[0], exponent = arr[1];
+            // find the minimum exponent that will upsize the normalized mantissa (0,5 to 1 range)
+            // in order to fit in 11 bits ([-2048, 2047])
+            max_mantissa = 0;
+            for (e = exponent; e >= -15; e--) {
+                max_mantissa = this.ldexp(100*mantissa, e);
+                if (max_mantissa > -2048 && max_mantissa < 2047) break;
+            }
+            var sign = (mantissa < 0) ?  1 :  0
+            var mant = (mantissa < 0) ?  ~(max_mantissa^2047) : max_mantissa
+            var exp = exponent - e;
+            apdu_data = new Buffer(2);
+            // yucks
+            apdu_data[0] = (sign << 7) + (exp << 3) + (mant >> 8);
+            apdu_data[1] = mant % 256;
+        }
+        datagram[dataStart + 1] = apdu_data[0];
+        datagram[dataStart + 2] = apdu_data[1];
+
+    } else if (data.length > 1) {
         if (data[0] < 0x3F) {
             datagram[dataStart] = (datagram[dataStart] | data[0]) & 255;
 
