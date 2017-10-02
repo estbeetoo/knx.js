@@ -17,6 +17,7 @@ function isFloat(n) {
 function KnxConnection(host, port) {
 
     KnxConnection.super_.call(this);
+    this.debug = true;
 
     this.ClassName = 'KnxConnection';
     this.RemoteEndpoint = {
