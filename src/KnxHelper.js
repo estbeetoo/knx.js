@@ -85,7 +85,7 @@ KnxHelper.GetAddress = function (addr /*buffer*/, separator, threeLevelAddressin
     else {
         // 3 level individual or group
         address = group
-            ? ((addr[0] & 0x7F) >> 3).toString()
+            ? ((addr[0] & 0xFF) >> 3).toString()
             : (addr[0] >> 4).toString();
 
         address += separator;
@@ -145,7 +145,7 @@ KnxHelper.GetAddress_ = function (address) {
         }
         else {
             var part = parseInt(parts[0]);
-            if (part > 15)
+            if (part > 31)
                 throw new InvalidKnxAddressException(address);
 
             addr[0] = group
