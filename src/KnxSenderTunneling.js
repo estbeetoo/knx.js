@@ -28,10 +28,10 @@ KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram, cal
     this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, cb)
 }
 
-/*
- WTF? Why we send 4 times?
- */
 KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram, callback) {
+    if (!datagram) {
+        return cb(new Error('Cannot send empty datagram'));
+    }
     var that = this;
 
     function cb(err) {
@@ -41,9 +41,6 @@ KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram, callback) 
     }
 
     this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, cb);
-    //this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);
-    //this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);
-    //this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, callback);
 }
 
 KnxSenderTunneling.prototype.SendTunnelingAck = function (sequenceNumber) {
