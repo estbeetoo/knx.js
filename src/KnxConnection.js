@@ -84,7 +84,7 @@ KnxConnection.prototype.Action = function (address, data, callback) {
         switch (typeof(data)) {
             case 'boolean':
                 buf = new Buffer(1);
-                buf.writeIntLE(data ? 1 : 0);
+                buf.writeInt8(data ? 1 : 0, 0);
                 break
             case 'number':
                 //if integer
