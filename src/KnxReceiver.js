@@ -98,6 +98,7 @@ KnxReceiver.prototype.ProcessCEMI = function (/*KnxDatagram*/ datagram, /*buffer
             datagram.apdu[i] = cemi[9 + i + datagram.additional_info_length];
 
         datagram.data = KnxHelper.GetData(datagram.data_length, datagram.apdu);
+        datagram.raw_data = datagram.apdu
 
         if (this.connection.debug) {
             console.log("-----------------------------------------------------------------------------------------------------");
@@ -131,11 +132,11 @@ KnxReceiver.prototype.ProcessCEMI = function (/*KnxDatagram*/ datagram, /*buffer
         switch (type) {
             case 8:
                 this.connection.emit('event', datagram.destination_address, datagram.data, datagram);
-                this.connection.emit('event.' + datagram.destination_address.toString(), datagram.destination_address, datagram.data, datagram);
+                this.connection.emit('event.' + datagram.destination_address.toString(), datagram.destination_address, datagram.data, datagram, datagram.raw_data);
                 break;
             case 4:
                 this.connection.emit('status', datagram.destination_address, datagram.data, datagram);
-                this.connection.emit('status.' + datagram.destination_address.toString(), datagram.destination_address, datagram.data, datagram);
+                this.connection.emit('status.' + datagram.destination_address.toString(), datagram.destination_address, datagram.data, datagram, datagram.raw_data);
                 break;
             default:
                 console.log('Unknown type[' + type + '] received in datagram[' + datagram.data.toString('hex') + ']');
