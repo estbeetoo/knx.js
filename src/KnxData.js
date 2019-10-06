@@ -2,10 +2,10 @@
  * Created by aborovsky on 24.08.2015.
  */
 
-function KnxData(data) {
+function KnxData(apdu) {
 
     this.ClassName = 'KnxData';
-    this.data = data;
+    this.apdu = apdu;
 }
 
 /// <summary>
@@ -48,10 +48,10 @@ function KnxData(data) {
 /// <returns>DataView object</returns>
 KnxData.prototype.dataView = function () {
     var i;
-    this.buffer = new ArrayBuffer(this.data.length);
+    this.buffer = new ArrayBuffer(this.apdu.length-2);
     dataView = new DataView(this.buffer);
-    for(i = 0; i < this.data.length; i++) {
-        dataView.setUint8(i, this.data[i]);
+    for(i = 0; i < this.buffer.length; i++) {
+        dataView.setUint8(i, this.apdu[i+2]);
     }
     return dataView;
 };
@@ -61,8 +61,17 @@ KnxData.prototype.dataView = function () {
 /// </summary>
 /// <returns></returns>
 KnxData.prototype.asDpt1 = function () {
+    var data = 0x3F & this.apdu[1]
+    return (data != 0);
+};
+
+/// <summary>
+///     Interpret the underlying data as boolean value
+/// </summary>
+/// <returns></returns>
+KnxData.prototype.asDpt5 = function () {
     view = this.dataView();
-    return (view.getUint8(0) != 0);
+    return view.getUint8(0);
 };
 
 /// <summary>
@@ -70,9 +79,9 @@ KnxData.prototype.asDpt1 = function () {
 /// </summary>
 /// <returns></returns>
 KnxData.prototype.asDpt9 = function () {
-    var sign     =  this.data[0] >> 7;
-    var exponent = (this.data[0] & 0b01111000) >> 3;
-    var mantissa = 256 * (this.data[0] & 0b00000111) + this.data[1];
+    var sign     =  this.apdu[2] >> 7;
+    var exponent = (this.apdu[2] & 0b01111000) >> 3;
+    var mantissa = 256 * (this.apdu[2] & 0b00000111) + this.apdu[3];
     mantissa = (sign == 1) ? ~(mantissa^2047) : mantissa;
 
     return KnxHelper.ldexp((0.01*mantissa), exponent);
