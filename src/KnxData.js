@@ -88,4 +88,24 @@ KnxData.prototype.asDpt9 = function () {
     return KnxHelper.ldexp((0.01*mantissa), exponent);
 };
 
+/// <summary>
+///     Interpret the underlying data as 4 byte signed integer
+/// </summary>
+/// <returns></returns>
+KnxData.prototype.asDpt13 = function () {
+    view = this.dataView();
+    //return this.apdu.length;
+    return view.getInt32(0);
+};
+
+/// <summary>
+///     Interpret the underlying data as 4 byte floating point number
+/// </summary>
+/// <returns></returns>
+KnxData.prototype.asDpt14 = function () {
+    view = this.dataView();
+    //return this.apdu.length;
+    return view.getFloat32(0);
+};
+
 module.exports = KnxData;
