@@ -65,4 +65,17 @@ KnxData.prototype.asDpt1 = function () {
     return (view.getUint8(0) != 0);
 };
 
+/// <summary>
+///     Interpret the underlying data as 2 byte floating point value
+/// </summary>
+/// <returns></returns>
+KnxData.prototype.asDpt9 = function () {
+    var sign     =  this.data[0] >> 7;
+    var exponent = (this.data[0] & 0b01111000) >> 3;
+    var mantissa = 256 * (this.data[0] & 0b00000111) + this.data[1];
+    mantissa = (sign == 1) ? ~(mantissa^2047) : mantissa;
+
+    return KnxHelper.ldexp((0.01*mantissa), exponent);
+};
+
 module.exports = KnxData;
