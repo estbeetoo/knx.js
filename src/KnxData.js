@@ -48,9 +48,10 @@ function KnxData(apdu) {
 /// <returns>DataView object</returns>
 KnxData.prototype.dataView = function () {
     var i;
-    this.buffer = new ArrayBuffer(this.apdu.length-2);
+    var len = this.apdu.length - 2;
+    this.buffer = new ArrayBuffer(len);
     dataView = new DataView(this.buffer);
-    for(i = 0; i < this.buffer.length; i++) {
+    for(i = 0; i < len; i++) {
         dataView.setUint8(i, this.apdu[i+2]);
     }
     return dataView;
