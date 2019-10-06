@@ -66,7 +66,7 @@ KnxData.prototype.asDpt1 = function () {
 };
 
 /// <summary>
-///     Interpret the underlying data as boolean value
+///     Interpret the underlying data as 1 Byte unsigned value
 /// </summary>
 /// <returns></returns>
 KnxData.prototype.asDpt5 = function () {
