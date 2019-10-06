@@ -1,6 +1,9 @@
 /**
  * Created by aborovsky on 26.08.2015.
  */
+
+var KnxData = require('./KnxData');
+
 function KnxReceiver(/*KnxConnection*/ connection) {
     this.connection = connection;
 }
@@ -98,6 +101,7 @@ KnxReceiver.prototype.ProcessCEMI = function (/*KnxDatagram*/ datagram, /*buffer
             datagram.apdu[i] = cemi[9 + i + datagram.additional_info_length];
 
         datagram.data = KnxHelper.GetData(datagram.data_length, datagram.apdu);
+        datagram.dptData = new KnxData(datagram.apdu.subarray(2));
         datagram.raw_data = datagram.apdu
 
         if (this.connection.debug) {
