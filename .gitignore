@@ -24,3 +24,5 @@ eiscp-commands-download.sh
 npm-debug.log
 /node_modules
 test
+
+package-lock.json

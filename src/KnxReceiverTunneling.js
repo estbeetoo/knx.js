@@ -1,6 +1,7 @@
 /**
  * Created by aborovsky on 24.08.2015.
  */
+const debug = require('debug')('knx.js:KnxReceiverTunneling');
 var util = require('util');
 var KnxDatagram = require('./KnxDatagram');
 var KnxReceiver = require('./KnxReceiver');
@@ -33,8 +34,7 @@ KnxReceiverTunneling.prototype.Stop = function () {
     this._udpClient.removeListener('message', this.socketReceiveLstnr);
 }
 KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) {
-    if (this.connection.debug)
-        console.log('ProcessDatagram datagram[%s]', datagram.toString('hex'));
+    debug('ProcessDatagram datagram[%s]', datagram.toString('hex'));
     try {
         switch (KnxHelper.GetServiceType(datagram)) {
             case KnxHelper.SERVICE_TYPE.CONNECT_RESPONSE:
@@ -53,7 +53,7 @@ KnxReceiverTunneling.prototype.ProcessDatagram = function (/*buffer*/ datagram) 
                 this.ProcessDatagramHeaders(datagram);
                 break;
             default:
-                console.log('Unknown serviceType of datagram[%s]', datagram.toString('hex'));
+                debug('Unknown serviceType of datagram[%s]', datagram.toString('hex'));
                 break;
         }
     }
@@ -132,9 +132,8 @@ KnxReceiverTunneling.prototype.ProcessConnectionStateResponse = function (/*buff
         this.connection.emit('alive');
         return;
     }
-    if (this.connection.debug)
-        console.log("KnxReceiverTunneling: Received connection state response - No active connection with channel ID %s", knxDatagram.channel_id);
-    
+    debug("KnxReceiverTunneling: Received connection state response - No active connection with channel ID %s", knxDatagram.channel_id);
+
     new Promise(function (win) {
         this.connection.Disconnect(win);
     }.bind(this)).then(this.connection.Connect.bind(this.connection));

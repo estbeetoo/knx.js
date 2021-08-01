@@ -5,41 +5,41 @@
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 var InvalidKnxDataException = require('./InvalidKnxDataException');
+const debug = require('debug')('knx.js:KnxConnection');
 
 function isInt(n) {
-    return Number(n) === n && n % 1 === 0;
+  return Number(n) === n && n % 1 === 0;
 }
 
 function isFloat(n) {
-    return n === Number(n) && n % 1 !== 0;
+  return n === Number(n) && n % 1 !== 0;
 }
 
 function KnxConnection(host, port) {
 
-    KnxConnection.super_.call(this);
-    this.debug = false;
+  KnxConnection.super_.call(this);
 
-    this.ClassName = 'KnxConnection';
-    this.RemoteEndpoint = {
-        host: host,
-        port: port,
-        toBytes: function () {
-            if (!this.host || this.host === '')
-                throw 'Cannot proceed toString for endPoint with empy host'
-            if (this.host.indexOf('.') === -1 || this.host.split('.').length < 4)
-                throw 'Cannot proceed toString for endPoint with host[' + this.host + '], it should contain ip address'
-            var result = new Buffer(4);
-            var arr = this.host.split('.');
-            result[0] = parseInt(arr[0]) & 255;
-            result[1] = parseInt(arr[1]) & 255;
-            result[2] = parseInt(arr[2]) & 255;
-            result[3] = parseInt(arr[3]) & 255;
-        }
-    };
-    this.connected = false;
+  this.ClassName = 'KnxConnection';
+  this.RemoteEndpoint = {
+    host: host,
+    port: port,
+    toBytes: function () {
+      if (!this.host || this.host === '')
+        throw 'Cannot proceed toString for endPoint with empy host';
+      if (this.host.indexOf('.') === -1 || this.host.split('.').length < 4)
+        throw 'Cannot proceed toString for endPoint with host[' + this.host + '], it should contain ip address';
+      var result = new Buffer(4);
+      var arr = this.host.split('.');
+      result[0] = parseInt(arr[0]) & 255;
+      result[1] = parseInt(arr[1]) & 255;
+      result[2] = parseInt(arr[2]) & 255;
+      result[3] = parseInt(arr[3]) & 255;
+    }
+  };
+  this.connected = false;
 
-    this.ActionMessageCode = 0x00;
-    this.ThreeLevelGroupAddressing = true;
+  this.ActionMessageCode = 0x00;
+  this.ThreeLevelGroupAddressing = true;
 }
 
 util.inherits(KnxConnection, EventEmitter);
@@ -79,48 +79,43 @@ util.inherits(KnxConnection, EventEmitter);
  List 3-byte value                  3 Byte                  DPT 232	    DPT 232	RGB[0,0,0]...[255,255,255]
  */
 KnxConnection.prototype.Action = function (address, data, callback) {
-    if (!Buffer.isBuffer(data)) {
-        var buf = null;
-        switch (typeof(data)) {
-            case 'boolean':
-                buf = new Buffer(1);
-                buf.writeInt8(data ? 1 : 0, 0);
-                break
-            case 'number':
-                //if integer
-                if (isInt(data)) {
-                    buf = new Buffer(2);
-                    if (data <= 255) {
-                        buf[0] = 0x00;
-                        buf[1] = data & 255;
-                    }
-                    else if (data <= 65535) {
-                        buf[0] = data & 255;
-                        buf[1] = (data >> 8) & 255;
-                    }
-                    else
-                        throw new InvalidKnxDataException(data.toString());
-                }
-                //if float
-                else if (isFloat(data)) {
-                    buf = new Buffer(4);
-                    buf.writeFloatLE(data, 0);
-                }
-                else
-                    throw new InvalidKnxDataException(data.toString());
-                break
-            case 'string':
-                buf = new Buffer(data.toString());
-                break
+  if (!Buffer.isBuffer(data)) {
+    var buf = null;
+    switch (typeof (data)) {
+      case 'boolean':
+        buf = new Buffer(1);
+        buf.writeInt8(data ? 1 : 0, 0);
+        break;
+      case 'number':
+        //if integer
+        if (isInt(data)) {
+          buf = new Buffer(2);
+          if (data <= 255) {
+            buf[0] = 0x00;
+            buf[1] = data & 255;
+          } else if (data <= 65535) {
+            buf[0] = data & 255;
+            buf[1] = (data >> 8) & 255;
+          } else
+            throw new InvalidKnxDataException(data.toString());
         }
-        data = buf;
+        //if float
+        else if (isFloat(data)) {
+          buf = new Buffer(4);
+          buf.writeFloatLE(data, 0);
+        } else
+          throw new InvalidKnxDataException(data.toString());
+        break;
+      case 'string':
+        buf = new Buffer(data.toString());
+        break;
     }
-    if (this.debug)
-        console.log("[%s] Sending %s to %s.", this.ClassName, JSON.stringify(data), JSON.stringify(address));
-    this.knxSender.Action(address, data, callback);
-    if (this.debug)
-        console.log("[%s] Sent %s to %s.", this.ClassName, JSON.stringify(data), JSON.stringify(address));
-}
+    data = buf;
+  }
+  debug('[%s] Sending %s to %s.', this.ClassName, JSON.stringify(data), JSON.stringify(address));
+  this.knxSender.Action(address, data, callback);
+  debug('[%s] Sent %s to %s.', this.ClassName, JSON.stringify(data), JSON.stringify(address));
+};
 
 // TODO: It would be good to make a type for address, to make sure not any random string can be passed in
 /// <summary>
@@ -128,12 +123,10 @@ KnxConnection.prototype.Action = function (address, data, callback) {
 /// </summary>
 /// <param name="address"></param>
 KnxConnection.prototype.RequestStatus = function (address, callback) {
-    if (this.debug)
-        console.log("[%s] Sending request status to %s.", this.ClassName, JSON.stringify(address));
-    this.knxSender.RequestStatus(address, callback);
-    if (this.debug)
-        console.log("[%s] Sent request status to %s.", this.ClassName, JSON.stringify(address));
-}
+  debug('[%s] Sending request status to %s.', this.ClassName, JSON.stringify(address));
+  this.knxSender.RequestStatus(address, callback);
+  debug('[%s] Sent request status to %s.', this.ClassName, JSON.stringify(address));
+};
 
 /// <summary>
 ///     Convert a value received from KNX using datapoint translator, e.g.,
@@ -143,8 +136,8 @@ KnxConnection.prototype.RequestStatus = function (address, callback) {
 /// <param name="data">Data to convert</param>
 /// <returns></returns>
 KnxConnection.prototype.FromDataPoint = function (type, /*buffer*/data) {
-    return DataPointTranslator.Instance.FromDataPoint(type, data);
-}
+  return DataPointTranslator.Instance.FromDataPoint(type, data);
+};
 
 /// <summary>
 ///     Convert a value to send to KNX using datapoint translator, e.g.,
@@ -154,7 +147,7 @@ KnxConnection.prototype.FromDataPoint = function (type, /*buffer*/data) {
 /// <param name="value">Value to convert</param>
 /// <returns></returns>
 KnxConnection.prototype.ToDataPoint = function (type, value) {
-    return DataPointTranslator.Instance.ToDataPoint(type, value);
-}
+  return DataPointTranslator.Instance.ToDataPoint(type, value);
+};
 
 module.exports = KnxConnection;

@@ -1,6 +1,7 @@
 /**
  * Created by aborovsky on 24.08.2015.
  */
+const debug = require('debug')('knx.js:KnxHelper');
 var InvalidKnxAddressException = require('./InvalidKnxAddressException');
 var KnxHelper = {};
 
@@ -318,7 +319,7 @@ KnxHelper.WriteData = function (/*buffer*/ datagram, /*buffer*/ data, dataStart)
         var value = data.readFloatLE(0);
         var apdu_data;
         if (!isFinite(value)) {
-            console.log( "DPT9: cannot write non-numeric or undefined value" );
+            debug( "DPT9: cannot write non-numeric or undefined value" );
         } else {
             var arr = this.frexp(value);
             var mantissa = arr[0], exponent = arr[1];
