@@ -25,6 +25,7 @@
   ],
   "dependencies": {
     "debug": "^4.3.2",
-    "promise": "^7.0.4"
+    "promise": "^7.0.4",
+    "retry": "^0.13.1"
   }
 }

@@ -1,8 +1,8 @@
 /**
  * Created by aborovsky on 24.08.2015.
  */
-
-var CONNECT_TIMEOUT = 5000;
+const debug = require('debug')('knx.js:KnxConnectionTunneling');
+const CONNECT_TIMEOUT = 5000;
 var KnxConnection = require('./KnxConnection');
 var KnxReceiverTunneling = require('./KnxReceiverTunneling');
 var KnxSenderTunneling = require('./KnxSenderTunneling');
@@ -10,7 +10,7 @@ var ConnectionErrorException = require('./ConnectionErrorException');
 var util = require('util');
 var dgram = require('dgram');
 var Promise = require('promise');
-const debug = require('debug')('knx.js:KnxConnectionTunneling');
+const connectKNXWithForeverRetries = require('./connectKNXWithForeverRetries');
 
 /// <summary>
 ///     Initializes a new KNX tunneling connection with provided values. Make sure the local system allows
@@ -34,7 +34,7 @@ function KnxConnectionTunneling(remoteIpAddress, remotePort, localIpAddress, loc
     port: localPort,
     toBytes: function () {
       if (!this.host || this.host === '')
-        throw 'Cannot proceed toString for localIpAddress with empy host';
+        throw 'Cannot proceed toString for localIpAddress with empty host';
       if (localIpAddress.indexOf('.') === -1 || this.host.split('.').length < 4)
         throw 'Cannot proceed toString for localIpAddress with host[' + this.host + '], it should contain ip address';
       var result = new Buffer(4);
@@ -89,6 +89,7 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
     return true;
   }
 
+  // TODO: use retry here
   this.connectTimeout = setTimeout(function () {
     that.removeListener('connected', that.ClearConnectTimeout);
     that.Disconnect(function () {
@@ -101,6 +102,7 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
       }, 3 * CONNECT_TIMEOUT);
     });
   }, CONNECT_TIMEOUT);
+
   this.once('connected', that.ClearConnectTimeout);
   if (callback) {
     this.removeListener('connected', callback);
@@ -128,18 +130,12 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
     this.knxSender.SetClient(this._udpClient);
   }
 
-  var that = this;
-  new Promise(function (fulfill, reject) {
-    that.knxReceiver.Start(fulfill);
-  }).then(function () {
-    that.InitializeStateRequest();
-  })
-    .then(function () {
-      that.ConnectRequest();
-    })
-    .then(function () {
-      that.emit('connect');
-      that.emit('connecting');
+  new Promise(resolve => this.knxReceiver.Start(resolve))
+    .then(() => this.InitializeStateRequest())
+    .then(() => this.ConnectRequest())
+    .then(() => {
+      this.emit('connect');
+      this.emit('connecting');
     });
 };
 
@@ -157,7 +153,7 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
 
   try {
     this.TerminateStateRequest();
-    new Promise(function (fulfill, reject) {
+    new Promise(function (fulfill) {
       that.DisconnectRequest(fulfill);
     })
       .then(function () {
@@ -172,7 +168,6 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
   } catch (e) {
     that.emit('disconnect', e);
   }
-
 };
 
 function delay(time) {
@@ -206,23 +201,12 @@ function timeout(func, time, timeoutFunc) {
 }
 
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
-  var self = this;
-  this._stateRequestTimer = setInterval(function () {
-    timeout(function (fulfill) {
-      self.removeAllListeners('alive');
-      self.StateRequest(function (err) {
-        if (!err)
-          self.once('alive', fulfill);
-      });
-    }, 2 * CONNECT_TIMEOUT, function () {
-      debug('Connection stale, so disconnect and then try to reconnect again');
-      new Promise(function (fulfill) {
-        self.Disconnect(fulfill);
-      }).then(function () {
-        self.Connect();
-      });
-    });
-  }, 60000); // same time as ETS with group monitor open
+  const connect = () => this._stateRequestTimer = setTimeout(
+    () => connectKNXWithForeverRetries(this, connect),
+    /*same time as ETS with group monitor open*/
+    60000
+  );
+  connect();
 };
 
 KnxConnectionTunneling.prototype.TerminateStateRequest = function () {
