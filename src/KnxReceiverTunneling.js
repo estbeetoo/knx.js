@@ -118,26 +118,24 @@ KnxReceiverTunneling.prototype.ProcessTunnelingAck = function (/*buffer*/ datagr
 KnxReceiverTunneling.prototype.ProcessConnectionStateResponse = function (/*buffer*/ datagram) {
   // HEADER
   // 06 10 02 08 00 08 -- 48 21
-  var service_type = new Buffer(2);
+  const service_type = new Buffer(2);
   service_type[0] = datagram[2];
   service_type[1] = datagram[3];
-  var knxDatagram = new KnxDatagram({
+  const knxDatagram = new KnxDatagram({
     header_length: datagram[0],
     protocol_version: datagram[1],
     service_type: service_type,
     total_length: datagram[4] + datagram[5],
     channel_id: datagram[6]
   });
-  var response = datagram[7];
+  const response = datagram[7];
   if (response != 0x21) {
     this.connection.emit('alive');
     return;
   }
   debug('KnxReceiverTunneling: Received connection state response - No active connection with channel ID %s', knxDatagram.channel_id);
-
-  new Promise(function (win) {
-    this.connection.Disconnect(win);
-  }.bind(this)).then(this.connection.Connect.bind(this.connection));
+  new Promise(resolve => this.connection.Disconnect(resolve))
+    .then(() => this.connection.Connect());
 };
 
 KnxReceiverTunneling.prototype.ProcessConnectResponse = function (/*buffer*/ datagram) {

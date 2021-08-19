@@ -2,7 +2,7 @@ const retry = require('retry');
 const { CONNECT_TIMEOUT } = require('./constants');
 const debug = require('debug')('knx.js:connectionAliveProbe');
 
-module.exports = (connection, _cb) => {
+module.exports = (connection, _cb, maxRetryTime) => {
   if (!connection) {
     return _cb(new Error('First argument must be a KNX connection'));
   }
@@ -11,7 +11,8 @@ module.exports = (connection, _cb) => {
     maxTimeout: 10 * CONNECT_TIMEOUT,
     randomize: true,
     unref: true,
-    maxRetryTime: 3 * CONNECT_TIMEOUT
+    maxRetryTime,
+    forever: true,
   });
 
   const cb = (err, currentAttempt) => {
@@ -21,7 +22,7 @@ module.exports = (connection, _cb) => {
       return;
     }
     if (err) {
-      const msg = `After ${currentAttempt} attempts err presented and 'retry' lib attempts count reached limit, it should never be the case cause attempts count is Infinite`;
+      const msg = `After ${currentAttempt} attempts err presented and 'retry' lib attempts count reached limit, \it should never be the case cause attempts count is Infinite`;
       console.error(msg);
       _cb(new Error(msg));
     } else {

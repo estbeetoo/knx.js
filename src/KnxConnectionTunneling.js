@@ -70,8 +70,8 @@ KnxConnectionTunneling.prototype.ClearReconnectRetry = function () {
 
 KnxConnectionTunneling.prototype.ClearConnectTimeout = function () {
   if (this.connectRetry) {
-    this.connectRetry.stop();
-    delete this.connectRetry;
+    this.connectRetry.stop && this.connectRetry.stop();
+    this.connectRetry = null;
   }
 };
 
@@ -115,11 +115,14 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
   }
 };
 
+const FIVE_MINUTES = 300000;
+const TEN_SECONDS = 10000;
+
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
   const connect = () => this._stateRequestTimer = setTimeout(
-    () => connectionAliveProbe(this, connect),
+    () => connectionAliveProbe(this, connect, FIVE_MINUTES - TEN_SECONDS),
     /*same time as ETS with group monitor open*/
-    60000
+    FIVE_MINUTES
   );
   connect();
 };
