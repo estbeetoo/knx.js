@@ -23,7 +23,7 @@ KnxSenderTunneling.prototype.SendDataSingle = function (/*buffer*/ datagram, cal
     debug('udp sent, err[' + (err ? err.toString() : 'no_err') + ']');
     callback && callback(err);
   }
-
+  debug(`SendDataSingle datagram[${datagram}] to ${this._remoteEndpoint.host}:${this._remoteEndpoint.port}`);
   this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, cb);
 };
 
@@ -35,7 +35,7 @@ KnxSenderTunneling.prototype.SendData = function (/*buffer*/datagram, callback) 
     debug('udp sent, err[' + (err ? err.toString() : 'no_err') + ']');
     callback && callback(err);
   }
-
+  debug(`SendData datagram[${datagram}] to ${this._remoteEndpoint.host}:${this._remoteEndpoint.port}`);
   this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host, cb);
 };
 
@@ -54,6 +54,7 @@ KnxSenderTunneling.prototype.SendTunnelingAck = function (sequenceNumber) {
   datagram[8] = sequenceNumber;
   datagram[9] = 0x00;
 
+  debug(`SendTunnelingAck datagram[${datagram}] to ${this._remoteEndpoint.host}:${this._remoteEndpoint.port}`);
   this._udpClient.send(datagram, 0, datagram.length, this._remoteEndpoint.port, this._remoteEndpoint.host);
 };
 
@@ -82,7 +83,6 @@ KnxSenderTunneling.prototype.CreateActionDatagram = function (/*string*/ destina
     return this.CreateActionDatagramCommon(destinationAddress, data, datagram);
   } catch (e) {
     this.connection.RevertSingleSequenceNumber();
-
     return null;
   }
 };

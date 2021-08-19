@@ -1,16 +1,13 @@
 /**
  * Created by aborovsky on 24.08.2015.
  */
-const debug = require('debug')('knx.js:KnxConnectionTunneling');
-const CONNECT_TIMEOUT = 5000;
-var KnxConnection = require('./KnxConnection');
-var KnxReceiverTunneling = require('./KnxReceiverTunneling');
-var KnxSenderTunneling = require('./KnxSenderTunneling');
-var ConnectionErrorException = require('./ConnectionErrorException');
-var util = require('util');
-var dgram = require('dgram');
-var Promise = require('promise');
-const connectKNXWithForeverRetries = require('./connectKNXWithForeverRetries');
+// const debug = require('debug')('knx.js:KnxConnectionTunneling');
+const KnxConnection = require('./KnxConnection');
+const util = require('util');
+const Promise = require('promise');
+const connectionAliveProbe = require('./connectionAliveProbe');
+const connectWithRetry = require('./connectWithRetry');
+const { CONNECT_TIMEOUT } = require('./constants');
 
 /// <summary>
 ///     Initializes a new KNX tunneling connection with provided values. Make sure the local system allows
@@ -64,17 +61,17 @@ KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
   this._sequenceNumber = 0x00;
 };
 
-KnxConnectionTunneling.prototype.ClearReconnectTimeout = function () {
-  if (this.reConnectTimeout) {
-    clearTimeout(this.reConnectTimeout);
-    delete this.reConnectTimeout;
+KnxConnectionTunneling.prototype.ClearReconnectRetry = function () {
+  if (this.connectWithRetryWorker) {
+    clearTimeout(this.connectWithRetryWorker);
+    delete this.connectWithRetryWorker;
   }
 };
 
 KnxConnectionTunneling.prototype.ClearConnectTimeout = function () {
-  if (this.connectTimeout) {
-    clearTimeout(this.connectTimeout);
-    delete this.connectTimeout;
+  if (this.connectRetry) {
+    this.connectRetry.stop();
+    delete this.connectRetry;
   }
 };
 
@@ -82,127 +79,45 @@ KnxConnectionTunneling.prototype.ClearConnectTimeout = function () {
 ///     Start the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Connect = function (callback) {
-  var that = this;
-
   if (this.connected && this._udpClient) {
     callback && callback();
     return true;
   }
-
-  // TODO: use retry here
-  this.connectTimeout = setTimeout(function () {
-    that.removeListener('connected', that.ClearConnectTimeout);
-    that.Disconnect(function () {
-      debug('Error connecting: timeout');
-      callback && callback({ msg: 'Error connecting: timeout', reason: 'CONNECTTIMEOUT' });
-      that.ClearReconnectTimeout();
-      this.reConnectTimeout = setTimeout(function () {
-        debug('Reconnecting');
-        that.Connect(callback);
-      }, 3 * CONNECT_TIMEOUT);
-    });
-  }, CONNECT_TIMEOUT);
-
-  this.once('connected', that.ClearConnectTimeout);
-  if (callback) {
-    this.removeListener('connected', callback);
-    this.once('connected', callback);
-  }
-  try {
-    if (this._udpClient != null) {
-      try {
-        this._udpClient.close();
-        //this._udpClient.Client.Dispose();
-      } catch (e) {
-        // ignore
-      }
-    }
-    this._udpClient = dgram.createSocket('udp4');//new UdpClient(_localEndpoint)
-  } catch (e) {
-    throw new ConnectionErrorException(ConnectionConfiguration, ex);
-  }
-
-  if (this.knxReceiver == null || this.knxSender == null) {
-    this.knxReceiver = new KnxReceiverTunneling(this, this._udpClient, this._localEndpoint);
-    this.knxSender = new KnxSenderTunneling(this, this._udpClient, this.RemoteEndpoint);
-  } else {
-    this.knxReceiver.SetClient(this._udpClient);
-    this.knxSender.SetClient(this._udpClient);
-  }
-
-  new Promise(resolve => this.knxReceiver.Start(resolve))
-    .then(() => this.InitializeStateRequest())
-    .then(() => this.ConnectRequest())
-    .then(() => {
-      this.emit('connect');
-      this.emit('connecting');
-    });
+  this.connectRetry = connectWithRetry(this, callback);
 };
 
 /// <summary>
 ///     Stop the connection
 /// </summary>
 KnxConnectionTunneling.prototype.Disconnect = function (callback) {
-  var that = this;
-
-  that.ClearConnectTimeout();
-  that.ClearReconnectTimeout();
+  this.ClearConnectTimeout();
+  this.ClearReconnectRetry();
 
   if (callback)
-    that.once('disconnect', callback);
+    this.once('disconnect', callback);
 
   try {
     this.TerminateStateRequest();
     new Promise(function (fulfill) {
-      that.DisconnectRequest(fulfill);
+      this.DisconnectRequest(fulfill);
     })
-      .then(function () {
-        that.knxReceiver.Stop();
-        that._udpClient.close();
-        that.connected = false;
-        that.emit('close');
-        that.emit('disconnect');
-        that.emit('disconnected');
+      .then(() => {
+        this.knxReceiver.Stop();
+        this._udpClient.close();
+        this.connected = false;
+        this.emit('close');
+        this.emit('disconnect');
+        this.emit('disconnected');
       });
 
   } catch (e) {
-    that.emit('disconnect', e);
+    this.emit('disconnect', e);
   }
 };
 
-function delay(time) {
-  return new Promise(function (fulfill, reject) {
-    setTimeout(fulfill, time);
-  });
-}
-
-function timeout(func, time, timeoutFunc) {
-
-  var success = null;
-
-  var succPromise = new Promise(function (fulfill, reject) {
-    func(function () {
-      if (success === null) {
-        fulfill();
-        success = true;
-      } else
-        reject();
-    });
-  });
-
-  var timeoutPromise = delay(time);
-
-  timeoutPromise.then(function () {
-    if (!success)
-      return timeoutFunc && timeoutFunc();
-  });
-
-  return Promise.race([succPromise, timeoutPromise]);
-}
-
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
   const connect = () => this._stateRequestTimer = setTimeout(
-    () => connectKNXWithForeverRetries(this, connect),
+    () => connectionAliveProbe(this, connect),
     /*same time as ETS with group monitor open*/
     60000
   );
