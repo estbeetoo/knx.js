@@ -28,6 +28,7 @@ function KnxConnectionTunneling(remoteIpAddress, remotePort, localIpAddress, loc
     this._stateRequestTimer = null; //Timer
     this._udpClient = null; //UdpClient
     this._sequenceNumber = null; //byte
+    this.lastActivity = Date.now(); // track last inbound activity
 
     this._localEndpoint = {
         host: localIpAddress,
@@ -227,13 +228,17 @@ KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
                     self.once('alive', fulfill);
             });
         }, 2 * CONNECT_TIMEOUT, function () {
+            // Only treat as stale if we truly had no activity recently
+            var idleMs = Date.now() - (self.lastActivity || 0);
+            if (idleMs < 45000) { // received something within last 45s; skip reconnect
+                if (self.debug) console.log('state-check missed alive but traffic seen %d ms ago; skip reconnect', idleMs);
+                return;
+            }
             if (self.debug)
-                console.log('connection stale, so disconnect and then try to reconnect again');
+                console.log('connection stale (idle %d ms), reconnecting', idleMs);
             new Promise(function (fulfill) {
                 self.Disconnect(fulfill);
-            }).then(function () {
-                    self.Connect();
-                });
+            }).then(function () { self.Connect(); });
         });
     }, 60000); // same time as ETS with group monitor open
 }
@@ -293,7 +298,8 @@ KnxConnectionTunneling.prototype.StateRequest = function (callback) {
     datagram[4] = 0x00;
     datagram[5] = 0x10;
 
-    datagram[5] = this.ChannelId;
+    // Per KNXnet/IP spec, channel id at offset 6, reserved at 7
+    datagram[6] = this.ChannelId;
     datagram[7] = 0x00;
     datagram[8] = 0x08;
     datagram[9] = 0x01;

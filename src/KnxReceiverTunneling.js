@@ -20,6 +20,8 @@ KnxReceiverTunneling.prototype.SetClient = function (/*UdpClient*/ client) {
 KnxReceiverTunneling.prototype.Start = function (callback) {
     var that = this;
     this.socketReceiveLstnr = function (msg, rinfo) {
+        // update activity timestamp on any inbound UDP
+        try { that.connection.lastActivity = Date.now(); } catch (e) {}
         try {
             that.ProcessDatagram(msg);
         } catch (e) {
