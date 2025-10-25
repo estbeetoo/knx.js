@@ -1,19 +1,20 @@
+'use strict';
 /**
  * Created by aborovsky on 24.08.2015.
  * Updated: hardened keepalive + reconnection logic, fixed context/timer bugs, and KNXnet/IP datagrams.
  */
 
 var CONNECT_TIMEOUT = 5000;
-var KnxConnection = require("./KnxConnection");
-var KnxReceiverTunneling = require("./KnxReceiverTunneling");
-var KnxSenderTunneling = require("./KnxSenderTunneling");
-var ConnectionErrorException = require("./ConnectionErrorException");
-var util = require("util");
-var dgram = require("dgram");
-var Promise = require("promise");
-
 var STATE_REQUEST_INTERVAL = 60000; // ping gateway every 60s
 var MISSED_ALIVE_LIMIT = 3;         // reconnect after 3 consecutive missed alives
+
+var KnxConnection = require('./KnxConnection');
+var KnxReceiverTunneling = require('./KnxReceiverTunneling');
+var KnxSenderTunneling = require('./KnxSenderTunneling');
+var ConnectionErrorException = require('./ConnectionErrorException');
+var util = require('util');
+var dgram = require('dgram');
+var Promise = require('promise'); // keep repo's promise impl for consistency
 
 /// <summary>
 ///     Initializes a new KNX tunneling connection with provided values. Make sure the local system allows
@@ -24,12 +25,18 @@ var MISSED_ALIVE_LIMIT = 3;         // reconnect after 3 consecutive missed aliv
 /// <param name="localIpAddress">Local IP address to bind to</param>
 /// <param name="localPort">Local port to bind to</param>
 function KnxConnectionTunneling(remoteIpAddress, remotePort, localIpAddress, localPort) {
-  KnxConnectionTunneling.super_.call(this, remoteIpAddress, remotePort, localIpAddress, localPort);
+  KnxConnectionTunneling.super_.call(
+    this,
+    remoteIpAddress,
+    remotePort,
+    localIpAddress,
+    localPort
+  );
 
-  this._localEndpoint = null;     // IPEndPoint {host, port}
+  this._localEndpoint = null;     // { host, port }
   this._stateRequestTimer = null; // Timer
   this._udpClient = null;         // dgram socket
-  this._sequenceNumber = null;    // byte
+  this._sequenceNumber = 0x00;    // byte
   this.lastActivity = Date.now(); // track last inbound activity
   this._missedAlive = 0;
 
@@ -37,16 +44,14 @@ function KnxConnectionTunneling(remoteIpAddress, remotePort, localIpAddress, loc
     host: localIpAddress,
     port: localPort,
     toBytes: function () {
-      if (!this.host || this.host === "")
-        throw "Cannot proceed toString for localIpAddress with empty host";
-      if (localIpAddress.indexOf(".") === -1 || this.host.split(".").length < 4)
-        throw (
-          "Cannot proceed toString for localIpAddress with host[" +
-          this.host +
-          "], it should contain ip address"
+      if (!this.host || this.host === '')
+        throw new Error('Cannot toBytes() for localIpAddress with empty host');
+      if (localIpAddress.indexOf('.') === -1 || this.host.split('.').length < 4)
+        throw new Error(
+          'Invalid localIpAddress host[' + this.host + '], it should contain IPv4 address'
         );
       var result = Buffer.alloc(4);
-      var arr = localIpAddress.split(".");
+      var arr = localIpAddress.split('.');
       result[0] = parseInt(arr[0], 10) & 255;
       result[1] = parseInt(arr[1], 10) & 255;
       result[2] = parseInt(arr[2], 10) & 255;
@@ -55,13 +60,13 @@ function KnxConnectionTunneling(remoteIpAddress, remotePort, localIpAddress, loc
     },
   };
 
-  // mark inbound helper bound to this instance
+  // helper to mark inbound traffic, resets alive counter
   this.markInbound = () => {
     this.lastActivity = Date.now();
     this._missedAlive = 0;
   };
 
-  this.ChannelId = 0x00;
+  this.ChannelId = 0x00; // set after successful ConnectResp elsewhere
 }
 util.inherits(KnxConnectionTunneling, KnxConnection);
 
@@ -69,29 +74,24 @@ util.inherits(KnxConnectionTunneling, KnxConnection);
 KnxConnectionTunneling.prototype.GenerateSequenceNumber = function () {
   return this._sequenceNumber++;
 };
-
 KnxConnectionTunneling.prototype.RevertSingleSequenceNumber = function () {
   this._sequenceNumber--;
 };
-
 KnxConnectionTunneling.prototype.ResetSequenceNumber = function () {
   this._sequenceNumber = 0x00;
 };
 
-// ---------------------- timeout helpers ----------------------
+// ---------------------- timer helpers ----------------------
 KnxConnectionTunneling.prototype.ClearReconnectTimeout = function () {
-  var that = this;
-  if (that.reConnectTimeout) {
-    clearTimeout(that.reConnectTimeout);
-    delete that.reConnectTimeout;
+  if (this.reConnectTimeout) {
+    clearTimeout(this.reConnectTimeout);
+    delete this.reConnectTimeout;
   }
 };
-
 KnxConnectionTunneling.prototype.ClearConnectTimeout = function () {
-  var that = this;
-  if (that.connectTimeout) {
-    clearTimeout(that.connectTimeout);
-    delete that.connectTimeout;
+  if (this.connectTimeout) {
+    clearTimeout(this.connectTimeout);
+    delete this.connectTimeout;
   }
 };
 
@@ -103,7 +103,6 @@ function delay(time) {
 
 /**
  * Run `func(fulfill)` and wait up to `time` ms; if not fulfilled, run `timeoutFunc`.
- * Returns a race promise (mostly for completeness).
  */
 function timeout(func, time, timeoutFunc) {
   var success = null;
@@ -121,7 +120,7 @@ function timeout(func, time, timeoutFunc) {
 
   var timeoutPromise = delay(time);
   timeoutPromise.then(function () {
-    if (!success) return timeoutFunc && timeoutFunc();
+    if (!success && typeof timeoutFunc === 'function') timeoutFunc();
   });
 
   return Promise.race([succPromise, timeoutPromise]);
@@ -132,43 +131,39 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
   var that = this;
 
   if (this.connected && this._udpClient) {
-    callback && callback();
+    if (callback) callback();
     return true;
   }
 
   this.connectTimeout = setTimeout(function () {
-    that.removeListener("connected", that.ClearConnectTimeout);
+    that.removeListener('connected', that.ClearConnectTimeout);
     that.Disconnect(function () {
-      if (that.debug) console.log("Error connecting: timeout");
-      callback &&
-        callback({ msg: "Error connecting: timeout", reason: "CONNECTTIMEOUT" });
+      if (that.debug) console.log('Error connecting: timeout');
+      if (callback)
+        callback({ msg: 'Error connecting: timeout', reason: 'CONNECTTIMEOUT' });
       that.ClearReconnectTimeout();
-      // FIX: use `that` not `this`
       that.reConnectTimeout = setTimeout(function () {
-        if (that.debug) console.log("reconnecting");
+        if (that.debug) console.log('reconnecting');
         that.Connect(callback);
       }, 3 * CONNECT_TIMEOUT);
     });
   }, CONNECT_TIMEOUT);
 
-  this.once("connected", that.ClearConnectTimeout);
+  this.once('connected', that.ClearConnectTimeout);
   if (callback) {
-    this.removeListener("connected", callback);
-    this.once("connected", callback);
+    this.removeListener('connected', callback);
+    this.once('connected', callback);
   }
 
   try {
-    if (this._udpClient != null) {
+    if (this._udpClient) {
       try {
         this._udpClient.close();
-      } catch (e) {
-        // ignore
-      }
+      } catch (_) {}
     }
-    this._udpClient = dgram.createSocket("udp4");
+    this._udpClient = dgram.createSocket('udp4');
   } catch (e) {
-    // FIX: use `e` not `ex`
-    throw new ConnectionErrorException(ConnectionConfiguration, e);
+    throw new ConnectionErrorException('UDP_CREATE_FAILED', e);
   }
 
   if (this.knxReceiver == null || this.knxSender == null) {
@@ -189,8 +184,8 @@ KnxConnectionTunneling.prototype.Connect = function (callback) {
       that.ConnectRequest();
     })
     .then(function () {
-      that.emit("connect");
-      that.emit("connecting");
+      that.emit('connect');
+      that.emit('connecting');
     });
 };
 
@@ -200,26 +195,26 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
   that.ClearConnectTimeout();
   that.ClearReconnectTimeout();
 
-  if (callback) that.once("disconnect", callback);
+  if (callback) that.once('disconnect', callback);
 
   try {
     this.TerminateStateRequest();
     new Promise(function (fulfill) {
       that.DisconnectRequest(fulfill);
     }).then(function () {
-      that.knxReceiver.Stop();
+      if (that.knxReceiver && typeof that.knxReceiver.Stop === 'function') {
+        that.knxReceiver.Stop();
+      }
       try {
         that._udpClient && that._udpClient.close();
-      } catch (e) {
-        // ignore
-      }
+      } catch (_) {}
       that.connected = false;
-      that.emit("close");
-      that.emit("disconnect");
-      that.emit("disconnected");
+      that.emit('close');
+      that.emit('disconnect');
+      that.emit('disconnected');
     });
   } catch (e) {
-    that.emit("disconnect", e);
+    that.emit('disconnect', e);
   }
 };
 
@@ -227,34 +222,28 @@ KnxConnectionTunneling.prototype.Disconnect = function (callback) {
 KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
   const self = this;
 
+  // ensure only one loop exists
+  this.TerminateStateRequest();
+
   const runStateCheck = () => {
     if (!self.connected || !self.ChannelId) return;
 
-    // Per-cycle 'alive' waiter
-    const onAliveOnce = function () {
-      // reset miss counter on successful keepalive
-      self._missedAlive = 0;
-      // also mark inbound to refresh idle timer
-      if (typeof self.markInbound === "function") self.markInbound();
-    };
-
-    // Expect 'alive' within 2 * CONNECT_TIMEOUT
+    // expect 'alive' within 2 * CONNECT_TIMEOUT
     timeout(
       (fulfill) => {
-        // Attach a single waiter for this cycle only
         const handler = function () {
-          self.removeListener("alive", handler);
-          onAliveOnce();
+          self.removeListener('alive', handler);
+          self._missedAlive = 0;
+          if (typeof self.markInbound === 'function') self.markInbound();
           fulfill();
         };
-        self.once("alive", handler);
+        self.once('alive', handler);
 
-        // Fire StateRequest (send errors are ignored; timeout fallback handles)
+        // send state request (errors ignored; timeout path handles recovery)
         self.StateRequest(function () {});
       },
       2 * CONNECT_TIMEOUT,
       () => {
-        // didn't see 'alive' in time
         self._missedAlive = (self._missedAlive || 0) + 1;
         if (self.debug) {
           console.log(
@@ -262,14 +251,13 @@ KnxConnectionTunneling.prototype.InitializeStateRequest = function () {
           );
         }
         if (self._missedAlive >= MISSED_ALIVE_LIMIT) {
-          if (self.debug) console.log("too many missed alives, reconnecting");
+          if (self.debug) console.log('too many missed alives, reconnecting');
           new Promise((fulfill) => self.Disconnect(fulfill)).then(() => self.Connect());
         }
       }
     );
   };
 
-  this.TerminateStateRequest();
   this._stateRequestTimer = setInterval(runStateCheck, STATE_REQUEST_INTERVAL);
   runStateCheck();
 };
@@ -285,7 +273,7 @@ KnxConnectionTunneling.prototype._createRequestDatagram = function (serviceType,
   var datagram = Buffer.alloc(length);
   datagram[0] = 0x06;
   datagram[1] = 0x10;
-  datagram[2] = 0x02;       // KNXnet/IP Core
+  datagram[2] = 0x02;        // KNXnet/IP Core
   datagram[3] = serviceType; // 0x05 ConnectReq, 0x07 ConnectionStateReq, 0x09 DisconnectReq
   datagram[4] = (length >> 8) & 255;
   datagram[5] = length & 255;
@@ -294,8 +282,8 @@ KnxConnectionTunneling.prototype._createRequestDatagram = function (serviceType,
 
 KnxConnectionTunneling.prototype._writeLocalEndpointHPAI = function (buffer, offset) {
   var endpointBytes = this._localEndpoint.toBytes();
-  buffer[offset] = 0x08;           // HPAI length
-  buffer[offset + 1] = 0x01;       // IPv4 UDP
+  buffer[offset] = 0x08;     // HPAI length
+  buffer[offset + 1] = 0x01; // IPv4 UDP
   buffer[offset + 2] = endpointBytes[0];
   buffer[offset + 3] = endpointBytes[1];
   buffer[offset + 4] = endpointBytes[2];
@@ -316,26 +304,25 @@ KnxConnectionTunneling.prototype.ConnectRequest = function (callback) {
   try {
     this.knxSender.SendDataSingle(datagram, callback);
   } catch (e) {
-    callback && callback();
+    if (callback) callback(e);
   }
 };
 
 KnxConnectionTunneling.prototype.StateRequest = function (callback) {
   var datagram = this._createRequestDatagram(0x07, 16);
-  // Per KNXnet/IP spec, channel id at offset 6, reserved at 7
-  datagram[6] = this.ChannelId;
-  datagram[7] = 0x00;
+  datagram[6] = this.ChannelId; // channel id
+  datagram[7] = 0x00;           // reserved
   this._writeLocalEndpointHPAI(datagram, 8); // control endpoint
   try {
     this.knxSender.SendData(datagram, callback);
   } catch (e) {
-    callback && callback(e);
+    if (callback) callback(e);
   }
 };
 
 KnxConnectionTunneling.prototype.DisconnectRequest = function (callback) {
   if (!this.connected) {
-    callback && callback();
+    if (callback) callback();
     return false;
   }
   var datagram = this._createRequestDatagram(0x09, 16);
@@ -345,7 +332,7 @@ KnxConnectionTunneling.prototype.DisconnectRequest = function (callback) {
   try {
     this.knxSender.SendData(datagram, callback);
   } catch (e) {
-    callback && callback(e);
+    if (callback) callback(e);
   }
 };
 
